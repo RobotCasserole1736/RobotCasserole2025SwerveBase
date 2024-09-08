@@ -1,7 +1,8 @@
 import wpilib
 from wpimath.units import feetToMeters
 from wpimath.geometry import Pose2d
-from photonlibpy.photonCamera import PhotonCamera #VisionLEDMode
+from photonlibpy import PhotonCamera
+from photonlibpy.photonCamera import setVersionCheckEnabled
 from utils.fieldTagLayout import FieldTagLayout
 from utils.faults import Fault
 
@@ -18,7 +19,7 @@ class CameraPoseObservation:
 # 3 - Handle recording latency of when the image was actually seen
 class WrapperedPhotonCamera:
     def __init__(self, camName, robotToCam):
-        #setVersionCheckEnabled(False)
+        setVersionCheckEnabled(False)
 
         self.cam = PhotonCamera(camName)
 

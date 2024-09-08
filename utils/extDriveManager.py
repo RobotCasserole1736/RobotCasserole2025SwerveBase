@@ -6,11 +6,11 @@ from utils.singleton import Singleton
 
 class ExtDriveManager(metaclass=Singleton):
     def __init__(self):
-        self.conn = False
+        self.enableDiskLogging = False
         self.driveAvailableFault = Fault("Logging USB Drive Not Available")
 
         if wpilib.RobotBase.isSimulation():
-            # Silently disable in sim
+            # Disable in sim
             self.enableDiskLogging = False
             self.logDir = ""
         else:
@@ -21,13 +21,18 @@ class ExtDriveManager(metaclass=Singleton):
             except PermissionError as err:
                 print("Logging disabled!")
                 print(err)
-                self.enableDiskLogging = False
-                self.driveAvailableFault.setFaulted()
 
-            self.conn = True
+
+        if(os.path.isdir(self.logDir)):
+            self.enableDiskLogging = True
+            self.driveAvailableFault.setNoFault()
+        else:
+            self.enableDiskLogging = False
+            self.driveAvailableFault.setFaulted()
+
 
     def getLogStoragePath(self):
         return self.logDir
 
     def isConnected(self):
-        return self.conn
+        return self.enableDiskLogging

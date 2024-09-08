@@ -44,7 +44,7 @@ class DrivetrainPoseTelemetry:
     def addVisionObservations(self, observations:list[CameraPoseObservation]):
         if(len(observations) > 0):
             for obs in observations:
-                self.visionPoses.append(obs.estFieldPose())
+                self.visionPoses.append(obs.estFieldPose)
 
     def clearVisionObservations(self):
         self.visionPoses = []
@@ -64,6 +64,7 @@ class DrivetrainPoseTelemetry:
         self.field.getObject("desTraj").setTrajectory(self.curTraj)
 
         self.field.getObject("visionObservations").setPoses(self.visionPoses)
+        self.visionPoses = []
 
         self.leftCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_LEFT_CAM))
         self.rightCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_RIGHT_CAM))

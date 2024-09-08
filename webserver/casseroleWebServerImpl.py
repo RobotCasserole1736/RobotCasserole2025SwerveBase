@@ -8,6 +8,7 @@ import json
 # These imports are mostly just to make sure we put versions on the webpage
 import wpilib
 import rev
+from photonlibpy import version
 
 from utils.extDriveManager import ExtDriveManager
 
@@ -15,20 +16,20 @@ from utils.extDriveManager import ExtDriveManager
 dashboardWidgetList = []
 
 # Where we expect to find our template files at
-WEB_ROOT = pathlib.Path(__file__).parent / "www"
-DASHBOARD_ROOT = WEB_ROOT / "dashboard"
+WEB_ROOT = os.path.join(os.path.dirname(__file__), "www")
+DASHBOARD_ROOT = os.path.join(WEB_ROOT, "dashboard")
 
 # One-time, read in all the template files we'll fill out
 INDEX_TMPLT_TXT = ""
-with open(WEB_ROOT / "index.html_tmplt", "r", encoding="utf-8") as infile:
+with open(os.path.join(WEB_ROOT, "index.html_tmplt"), "r", encoding="utf-8") as infile:
     INDEX_TMPLT_TXT = infile.read()
 
 HTML_TMPLT_TXT = ""
-with open(DASHBOARD_ROOT / "dashboard.html_tmplt", "r", encoding="utf-8") as infile:
+with open(os.path.join(DASHBOARD_ROOT, "dashboard.html_tmplt"), "r", encoding="utf-8") as infile:
     HTML_TMPLT_TXT = infile.read()
 
 JS_TMPLT_TXT = ""
-with open(DASHBOARD_ROOT / "dashboard.js_tmplt", "r", encoding="utf-8") as infile:
+with open(os.path.join(DASHBOARD_ROOT, "dashboard.js_tmplt"), "r", encoding="utf-8") as infile:
     JS_TMPLT_TXT = infile.read()
 
 
@@ -83,6 +84,7 @@ class CasseroleWebServerImpl(SimpleHTTPRequestHandler):
         deployText += f"Python - {platform.python_version()} - {sys.executable} \n"
         deployText += f"WPILib - {wpilib.version.version} \n"
         deployText += f"REV - {rev.version.version} \n"
+        deployText += f"PhotonVision - {version.PHOTONLIB_VERSION} \n"
         deployText += f"Working Dir - {os.getcwd()}\n"
 
         filledOut = INDEX_TMPLT_TXT.replace("${BUILD_INFO}", deployText)
