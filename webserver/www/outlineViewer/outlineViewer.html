@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="../index.css">
+    <link rel="stylesheet" href="outlineViewer.css">
+    <title>Outline Viewer</title>
+</head>
+
+<body>
+    <h1> Outline Viewer </h1>              
+
+    
+    <buttonsContainer class="outlined">
+        <buttonGroup class="outlined">
+            <div style="margin:5px; width:30vw">
+                <input style="margin:5px; width:20vw" class="filterTextInput" id="filterTextInput" type="text" placeholder="Filter" onkeyup="filterChangeHandler(this.value)">       
+            </div> 
+        </buttonGroup>
+        <buttonGroup class="outlined">
+            <div style="margin:5px; width:30vw" id="status">Not yet connected...</div>
+        </buttonGroup>
+        <buttonGroup class="outlined">
+            <div style="margin:5px; width:30vw" id="curTime"></div> 
+        </buttonGroup>
+
+    </buttonsContainer>
+
+    <table id="mainTable">
+    </table>
+
+    <hr>
+
+
+</body>
+
+<script type="module" src="outlineViewer.js"></script>
+
+</html>

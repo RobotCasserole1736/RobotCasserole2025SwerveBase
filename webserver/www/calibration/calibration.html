@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="calibration.css">
+    <link rel="stylesheet" href="spinbox/spinboxStylesheet.css">
+    <title>Calibrations</title>
+</head>
+
+<body>
+    <topLevelContainer>
+
+        <!-- buttons and controls area-->
+        <buttonsContainer class="outlined">
+            <buttonGroup class="outline">
+                <div id="filterControls" class="filterDiv"> 
+                    <input class="filterTextInput" id="filterTextInput" type="text" placeholder="Filter"
+                    onkeyup="filterChangeHandler(this.value)">
+                </div>
+            </buttonGroup>
+            <buttonGroup class="outlined"> 
+                <button id="reset_btn" type="button" onclick="resetAll()">Reset All</button>
+            </buttonGroup>
+
+        </buttonsContainer>
+
+
+        <!-- main table area for calibrations -->
+        <table class="calValueTable outlined" id="calValueTable">
+
+        </table>
+
+
+    </topLevelContainer>
+
+    <script type="module" src="./calibration.js"></script>
+
+</body>
+
+<footer>
+
+</footer>
+
+</html>

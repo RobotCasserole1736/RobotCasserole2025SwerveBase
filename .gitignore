@@ -1,0 +1,5 @@
+__pycache__
+simgui-window.json
+networktables.json
+.coverage
+.simulationLogs

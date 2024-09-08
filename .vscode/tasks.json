@@ -1,0 +1,173 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "PyFRC: Deploy",
+            "type": "shell",
+            "windows": {
+                "command": "robotpy deploy --skip-tests --no-verify"
+            },
+            "linux": {
+                "command": "robotpy deploy --skip-tests --no-verify"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "focus": true,
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "cloud-upload"
+            }
+        },
+        {
+            "label": "PyFRC: RIO Debug PreSteps",
+            "dependsOn": [
+                "PyFRC: Deploy Debug",
+                "delay"
+            ],
+            "dependsOrder": "sequence",
+            "group": "none",
+            "hide": true
+        },
+        {
+            "label": "delay",
+            "type": "shell",
+            "command": "sleep 10",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "clear": true,
+                "focus": false,
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "group": "none",
+            "hide": true
+        },
+        {
+            "label": "PyFRC: Deploy Debug",
+            "type": "shell",
+            "windows": {
+                "command": "robotpy deploy --skip-tests --debug --no-verify"
+            },
+            "linux": {
+                "command": "robotpy deploy --skip-tests --debug --no-verify"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "focus": true,
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "cloud-upload"
+            }
+        },
+        {
+            "label": "PyFRC: Run Lint Check",
+            "type": "shell",
+            "windows": {
+                "command": "pylint --rcfile=${workspaceFolder}\\.pylintrc ${workspaceFolder}\\**\\*.py"
+            },
+            "linux": {
+                "command": "pylint --rcfile=${workspaceFolder}/.pylintrc $(git ls-files '${workspaceFolder}/*.py')"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "focus": true,
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "microscope"
+            }
+        },
+        {
+            "label": "PyFRC: Run Test Suite",
+            "type": "shell",
+            "windows": {
+                "command": "robotpy test"
+            },
+            "linux": {
+                "command": "robotpy test"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "focus": true,
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "check-all"
+            }
+        },
+        {
+            "label": "PyFRC: Run Simulation",
+            "type": "shell",
+            "windows": {
+                "command": "robotpy sim"
+            },
+            "linux": {
+                "command": "robotpy sim"
+            },
+            "group": {
+                "kind": "test"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true,
+                "focus": true,
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "check-all"
+            }
+        },
+        {
+            "label": "PyFRC: View Netconsole",
+            "type": "shell",
+            "windows": {
+                "command": "py -3 -m netconsole roboRIO-1736-frc.local"
+            },
+            "linux": {
+                "command": "netconsole roboRIO-1736-frc.local"
+            },
+            "group": {
+                "kind": "build"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true,
+                "focus": true,
+                "showReuseMessage": false,
+                "revealProblems": "onProblem"
+            },
+            "problemMatcher": [],
+            "icon": {
+                "id": "check-all"
+            }
+        }
+    ]
+}

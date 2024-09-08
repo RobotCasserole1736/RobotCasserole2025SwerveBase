@@ -1,0 +1,115 @@
+{
+  "HALProvider": {
+    "Other Devices": {
+      "SPARK MAX [16]": {
+        "header": {
+          "open": true
+        }
+      },
+      "SPARK MAX [18]": {
+        "header": {
+          "open": true
+        }
+      },
+      "SPARK MAX [19]": {
+        "header": {
+          "open": true
+        }
+      },
+      "window": {
+        "visible": false
+      }
+    },
+    "Timing": {
+      "window": {
+        "visible": false
+      }
+    }
+  },
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo",
+      "/LiveWindow/Ungrouped/ADXRS450_Gyro[0]": "Gyro",
+      "/LiveWindow/Ungrouped/DigitalInput[0]": "Digital Input",
+      "/LiveWindow/Ungrouped/DigitalInput[1]": "Digital Input",
+      "/LiveWindow/Ungrouped/DigitalInput[2]": "Digital Input",
+      "/LiveWindow/Ungrouped/DigitalInput[3]": "Digital Input",
+      "/LiveWindow/Ungrouped/DigitalOutput[8]": "Digital Output",
+      "/LiveWindow/Ungrouped/DigitalOutput[9]": "Digital Output",
+      "/SmartDashboard/Carriage": "Mechanism2d",
+      "/SmartDashboard/DT Pose 2D": "Field2d"
+    },
+    "windows": {
+      "/SmartDashboard/Carriage": {
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/DT Pose 2D": {
+        "ModulePoses": {
+          "image": "swerve_module.png",
+          "length": 0.5,
+          "width": 0.5
+        },
+        "Robot": {
+          "style": "Line (Closed)"
+        },
+        "bottom": 1476,
+        "desTraj": {
+          "arrowColor": [
+            187.2151641845703,
+            0.0,
+            255.0,
+            255.0
+          ],
+          "arrowWeight": 2.0,
+          "color": [
+            0.0,
+            255.0,
+            245.31642150878906,
+            255.0
+          ],
+          "style": "Line"
+        },
+        "height": 8.210550308227539,
+        "left": 150,
+        "right": 2961,
+        "top": 79,
+        "width": 16.541748046875,
+        "window": {
+          "visible": true
+        }
+      }
+    }
+  },
+  "NetworkTables": {
+    "retained": {
+      "Calibrations": {
+        "Drivetrain HDC Rotation kI": {
+          "open": true
+        },
+        "Drivetrain HDC Translation kI": {
+          "open": true
+        },
+        "open": true
+      }
+    },
+    "transitory": {
+      "SmartDashboard": {
+        "open": true
+      }
+    }
+  },
+  "NetworkTables Info": {
+    "JSClient_82876304@1": {
+      "Publishers": {
+        "open": true
+      },
+      "Subscribers": {
+        "open": true
+      },
+      "open": true
+    },
+    "visible": true
+  }
+}

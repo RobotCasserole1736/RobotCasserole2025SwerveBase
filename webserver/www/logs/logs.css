@@ -1,0 +1,65 @@
+topLevelContainer {
+    display: flex;
+    flex-direction: column;
+    width:100%;
+    height:100%;
+}
+
+div.statusDiv {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height:100%;
+    font-family: monospace;
+    flex-grow: 1;
+}
+
+div.connected {
+    background-color: #225522;
+}
+
+div.disconnected {
+    background-color: #552222;  
+}
+
+td.tableText {
+    padding-left: 1em;
+    font-family: monospace;
+}
+
+tr.logFileRow {
+    margin: 1em;
+    background-color: #333333;
+}
+
+table {
+    padding: 1em;
+    width: 100%;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1;
+}
+
+.modal-content {
+    background-color: #444;
+    width: 70%;
+    max-width: 400px; /* You can adjust the maximum width as needed */
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    border-radius: 5px;
+    text-align: center;
+}
+
+/* Style the buttons within the modal */
+.modal-content button {
+    margin: 5px;
+}

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../common.css">
+    <link rel="stylesheet" href="logs.css">
+    <title>Log Files</title>
+</head>
+
+<body>
+    <h1>Log File List</h1>
+    <button id="deleteAll">Delete All Logs</button>
+    <table class="logListingTable" id="fileList">
+
+        <div id="confirmationModal" class="modal">
+            <div class="modal-content">
+                <p>Are you sure you want to delete all files?</p>
+                <button id="confirmDelete">Yes</button>
+                <button id="cancelDelete">No</button>
+            </div>
+        </div>
+
+        <script>
+
+            //Scales a filesize to a nice comprehensible integer
+            function fileSizeToString(size_in){
+                if(size_in < 1024){
+                    return `${size_in} bytes`
+                } else if(size_in < 1024*1024){
+                    var printInt = Math.ceil(size_in / 1024);
+                    return `${printInt} kB`
+                }else if(size_in < 1024*1024*1024){
+                    var printInt = Math.ceil(size_in / (1024*1024));
+                    return `${printInt} MB`
+                }else {
+                    var printInt = Math.ceil(size_in / (1024*1024*1024));
+                    return `${printInt} GB`
+                }
+            }
+
+            // Unix timestamp (what the RIO reports for mod time) to nice local time in the PC's
+            // current timezone
+            function timeConverter(UNIX_timestamp){
+                var a = new Date(UNIX_timestamp * 1000);
+                var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                var year = a.getFullYear();
+                var month = months[a.getMonth()];
+                var date = a.getDate();
+                var hour = a.getHours() > 12 ? a.getHours() - 12 : a.getHours();
+                var min = a.getMinutes();
+                var sec = a.getSeconds();
+                var ampm = a.getHours() > 12 ? "PM" : "AM";
+                var time = month + ' ' + date  + ' ' + year + ' - ' + hour + ':' + min + ':' + sec + ' ' + ampm;
+                return time;
+            }
+
+            // Function to fetch and display the file list
+            function displayFileList() {
+                fetch('/get_file_list')
+                    .then(response => response.json())
+                    .then(data => {
+                        const fileList = document.getElementById('fileList');
+                        fileList.innerHTML = '';
+                        data.forEach(file => {
+                            const li = document.createElement('tr');
+
+                            const data1 = document.createElement('td');
+                            data1.innerHTML = `${file.name}`
+                            data1.classList.add('outlined');
+                            li.appendChild(data1);
+
+                            const data2 = document.createElement('td');
+                            data2.innerHTML = `${timeConverter(file.modTime)}`
+                            data2.classList.add('outlined');
+                            li.appendChild(data2);
+
+                            const data3 = document.createElement('td');
+                            data3.innerHTML = `${fileSizeToString(file.size)}`
+                            data3.classList.add('outlined');
+                            li.appendChild(data3);
+
+                            const data4 = document.createElement('td');
+                            data4.innerHTML = `<button onclick="downloadFile('${file.name}')">Download</button>
+                                               <button onclick="deleteFile('${file.name}')">Delete</button></td>`;
+                            data4.classList.add('outlined');
+                            li.appendChild(data4);
+
+                            fileList.appendChild(li);
+                        });
+                    });
+            }
+
+            // Function to download a file
+            function downloadFile(filename) {
+                window.location.href = `/download_file/${filename}`;
+            }
+
+            // Function to delete a file
+            function deleteFile(filename) {
+                fetch(`/delete_file/${filename}`, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.status === 200) {
+                            displayFileList();
+                        }
+                    });
+            }
+
+            // Function to delete all files
+            document.getElementById('deleteAll').addEventListener('click', function () {
+                // Show the confirmation modal when the "Delete All Files" button is clicked
+                document.getElementById('confirmationModal').style.display = 'block';
+            });
+
+            // Function to confirm and perform delete
+            document.getElementById('confirmDelete').addEventListener('click', function () {
+                fetch('/delete_all_files', { method: 'DELETE' })
+                    .then(response => {
+                        if (response.status === 200) {
+                            // Close the modal
+                            document.getElementById('confirmationModal').style.display = 'none';
+
+                            // Refresh the file list
+                            displayFileList();
+                        }
+                    });
+            });
+
+            // Function to cancel the delete operation
+            document.getElementById('cancelDelete').addEventListener('click', function () {
+                // Close the modal without performing delete
+                document.getElementById('confirmationModal').style.display = 'none';
+            });
+
+            // Initial file list display
+            displayFileList();
+        </script>
+</body>
+
+</html>
