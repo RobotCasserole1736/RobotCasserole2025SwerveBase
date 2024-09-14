@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import math
+import math, random
 
 def create_base_cost_map(grid_shape, end_point):
     #defines the base cost map.
@@ -129,7 +129,7 @@ def gradient_descent_on_function(values, start, end, grid_shape, step_size=0.75)
     # Calcualte a max iterations based on the distance we're traversing
     straightline_x = x_end - x
     straightline_y = y_end - y
-    max_iter = int( math.sqrt(straightline_x**2 + straightline_y**2) / step_size * 10.0)
+    max_iter = int( math.sqrt(straightline_x**2 + straightline_y**2) / step_size * 20.0)
 
 
     path = []
@@ -142,9 +142,12 @@ def gradient_descent_on_function(values, start, end, grid_shape, step_size=0.75)
         grad_x, grad_y = interpolate_gradient(grid, x, y)
         
         grad_mag = np.sqrt(grad_x**2 + grad_y**2)
+
+        # Add a small factor of randomness to the next step choice to help avoid cases of getting stuck in cycles.
+        random_pertubation = 0.1
         
-        delta_x = -1.0 * step_size * grad_x / grad_mag
-        delta_y = -1.0 * step_size * grad_y / grad_mag
+        delta_x = -1.0 * step_size * grad_x / grad_mag + random.uniform(step_size * -random_pertubation, step_size * random_pertubation)
+        delta_y = -1.0 * step_size * grad_y / grad_mag + random.uniform(step_size * -random_pertubation, step_size * random_pertubation)
 
         # Update positions based on gradient direction
         new_x = x + delta_x
