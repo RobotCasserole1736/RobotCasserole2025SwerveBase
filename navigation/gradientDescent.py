@@ -1,28 +1,66 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
-def create_funnel(grid_shape, end_point):
+def create_base_cost_map(grid_shape, end_point):
+    #defines the base cost map.
+
+    # Points further from the goal are costly
+    # This should, by default, "Funnel" all paths toward the goal
     x_end, y_end = end_point
     y, x = np.indices(grid_shape)
-    funnel = np.sqrt((x - x_end)**2 + (y - y_end)**2)
-    return funnel
+    grid = np.sqrt((x - x_end)**2 + (y - y_end)**2) 
 
-def add_cosine_bump(grid, peak_center, peak_height, peak_radius):
+    # Apply cost of hitting walls
+    block_walls(grid)
+
+    return grid
+
+def block_walls(grid, wall_height=100):
+    # Make sure hitting walls is high cost
+    grid[0, :] = wall_height       # Top row
+    grid[-1, :] = wall_height      # Bottom row
+    grid[:, 0] = wall_height       # Left column
+    grid[:, -1] = wall_height      # Right column
+
+def add_cosine_squared_bump(grid, peak_center, peak_height, peak_radius):
     x_peak, y_peak = peak_center
     y, x = np.indices(grid.shape)
     
-    # Define the square region
-    within_radius = (np.abs(x - x_peak) <= peak_radius) & (np.abs(y - y_peak) <= peak_radius)
-    
-    # Calculate distance from peak center only within the square
+    # Calculate distance from peak center (circular radius)
     distance = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
+    within_radius = distance < peak_radius
     
-    # Apply the cosine bump function only within the square region
-    bump = np.where(within_radius, peak_height * np.maximum(np.cos(np.pi * distance / peak_radius), 0), 0)
+    # Apply the cosine squared bump function within the circular region
+    bump = np.where(
+        within_radius, 
+        peak_height * np.maximum(np.cos(np.pi * distance / (2 * peak_radius))**2, 0), 
+        0
+    )
     
     # Add bump to the grid
     grid += bump
     return grid
+
+def add_hard_stop_circle(grid, peak_center, peak_radius):
+    x_peak, y_peak = peak_center
+    y, x = np.indices(grid.shape)
+    
+    # Calculate distance from peak center (circular radius)
+    distance = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
+    within_radius = distance < peak_radius
+    
+    # Apply the cosine squared bump function within the circular region
+    bump = np.where(
+        within_radius, 
+        100.0,
+        0
+    )
+    
+    # Add bump to the grid
+    grid += bump
+    return grid
+
 
 def linear_interpolate(value1, value2, ratio):
     return value1 * (1 - ratio) + value2 * ratio
@@ -54,14 +92,47 @@ def interpolate_gradient(grid, x, y):
     
     return grad_x, grad_y
 
-def gradient_descent_on_function(values, start, end, grid_shape, step_size=1.0, proximity_threshold=1.5, max_iter=10000):
+## TODO - this does not work yet.
+def detect_backtracking(path, step_size, num_points=8):
+    if len(path) < num_points:
+        return False
+    
+    dist_range_thresh = step_size * 1.5
+
+    most_recent_points = np.array(path[-num_points:])
+    print("=============")
+    
+    # Compute pairwise distances between the most recent points
+    distances = []
+    for i in range(num_points):
+        for j in range(i + 1, num_points):
+            delta = np.linalg.norm(most_recent_points[i] - most_recent_points[j])
+            distances.append(delta)
+    
+    # Calculate the maximum distance between any two points
+    maxDist = np.max(distances)
+    print(f"MaxDistances={maxDist}")
+
+    # Check if the points are not spaced out enough
+    if maxDist < dist_range_thresh:
+        return True
+    return False
+
+def gradient_descent_on_function(values, start, end, grid_shape, step_size=0.75):
     grid = np.reshape(values, grid_shape)
+
+    proximity_threshold = step_size * 1.25
 
     x, y = start
     x_end, y_end = end
     
+    # Calcualte a max iterations based on the distance we're traversing
+    straightline_x = x_end - x
+    straightline_y = y_end - y
+    max_iter = int( math.sqrt(straightline_x**2 + straightline_y**2) / step_size * 10.0)
+
+
     path = []
-    last_point = np.array([x, y])
     
     for step in range(max_iter):
         if (x < 0 or x >= grid_shape[1] or y < 0 or y >= grid_shape[0]):
@@ -72,76 +143,138 @@ def gradient_descent_on_function(values, start, end, grid_shape, step_size=1.0, 
         
         grad_mag = np.sqrt(grad_x**2 + grad_y**2)
         
+        delta_x = -1.0 * step_size * grad_x / grad_mag
+        delta_y = -1.0 * step_size * grad_y / grad_mag
+
         # Update positions based on gradient direction
-        new_x = x - step_size * grad_x / grad_mag
-        new_y = y - step_size * grad_y / grad_mag
+        new_x = x + delta_x
+        new_y = y + delta_y
         
         new_x = max(0, min(new_x, grid_shape[1]-1))
         new_y = max(0, min(new_y, grid_shape[0]-1))
         
         new_point = np.array([new_x, new_y])
-        height_delta = grid[int(new_y), int(new_x)] - grid[int(y), int(x)]
         distance_to_target = np.sqrt((new_x - x_end)**2 + (new_y - y_end)**2)
 
         # Print debug information
-        print(f"Step {step}: Distance to target = {distance_to_target:.2f}, Height delta = {height_delta:.2f}")
+        print(f"Step {step}: Distance to target = {distance_to_target:.2f}, Delta = ({delta_x:.2f},{delta_y:.2f})")
         
-        # Append points to path if distance is more than proximity threshold
-        if np.linalg.norm(new_point - last_point) >= proximity_threshold:
+        if distance_to_target >= proximity_threshold:
+            # Too far away, we'll keep going
             path.append(new_point)
-            last_point = new_point
         
-        # Check if close enough to the endpoint
-        if distance_to_target < proximity_threshold:
+            # Check for backtracking (four points within 2 step sizes)
+            # if detect_backtracking(path, step_size):
+            #     print(f"Backtracking detected at step {step}. Stopping.")
+            #     return np.array(path[:-1])  # Return path without final backtracking point
+                
+            # Move to the new point
+            x, y = new_x, new_y
+            
+        else:
+            # Close enough to the endpoint. append it and get out.
             path.append(np.array([x_end, y_end]))
             break
-        
-        # Move to the new point
-        x, y = new_x, new_y
     
-    # Append the endpoint if it wasn't added in the loop
-    if len(path) == 0 or np.linalg.norm(path[-1] - np.array([x_end, y_end])) >= proximity_threshold:
-        path.append(np.array([x_end, y_end]))
+
+    # If max iterations reached, return path without the final point
+    if(step == max_iter-1):
+        print("Max iterations reached. Stopping.")
+
+    # Simplyify the path
+    return resample_path(path, 3.0)
+
+def resample_path(path, min_dist):
+
+    smoothed_path = []
+    num_points = len(path)
+
+    # First point should always be in the path
+    smoothed_path.append(path[0])
+    x_last, y_last = path[0]
+
+    # Only place points that are properly spaced out
+    for i in range(num_points):
+        x_cur, y_cur = path[i]
+        delta_x = x_cur - x_last
+        delta_y = y_cur - y_last
+        dist = math.sqrt(delta_x**2 + delta_y**2)
+        if(dist > min_dist):
+            smoothed_path.append(path[i])
+            x_last, y_last = x_cur, y_cur
     
-    return np.array(path), grid
+    #Last point should always be in the path
+    smoothed_path.append(path[-1])
+
+    return np.array(smoothed_path)
 
 def plot_results(values, path, grid_shape):
+    global ax1, ax2, cid
     grid = np.reshape(values, grid_shape)
     
-    plt.figure(figsize=(12, 6))
-    
-    plt.subplot(1, 2, 1)
-    plt.imshow(grid, cmap='viridis', origin='lower', extent=[0, 54, 0, 27])
-    plt.colorbar(label='Function value')
-    plt.title('Function Values')
-    
-    plt.subplot(1, 2, 2)
-    plt.imshow(grid, cmap='viridis', origin='lower', extent=[0, 54, 0, 27])
-    plt.colorbar(label='Function value')
-    plt.plot(path[:, 0], path[:, 1], 'r-', marker='o', markersize=5, label='Path')
-    plt.title('Gradient Descent Path')
-    plt.legend()
-    
-    plt.show()
+    ax1.clear()
+    ax2.clear()
 
-# Example usage
+    ax1.imshow(grid, cmap='viridis', origin='lower', extent=[0, 54, 0, 27])
+    ax1.set_title('Function Values')
+    ax1.set_xlabel('X (feet)')
+    ax1.set_ylabel('Y (feet)')
+    
+    ax2.imshow(grid, cmap='viridis', origin='lower', extent=[0, 54, 0, 27])
+    ax2.plot(path[:, 0], path[:, 1], 'r-', marker='o', markersize=5, label='Path')
+    ax2.set_title('Gradient Descent Path')
+    ax2.legend()
+    ax2.set_xlabel('X (feet)')
+    ax2.set_ylabel('Y (feet)')
+
+    plt.draw()
+
+def onclick(event):
+    global values, peak_radius, peak_height, end_point, start, path, grid_shape
+    
+    # Ignore clicks outside the axes
+    if event.inaxes not in [ax1, ax2]:
+        return
+    
+    x_click, y_click = event.xdata, event.ydata
+    
+    if event.button == 1:  # Left click
+        print(f"Adding peak at ({x_click:.2f}, {y_click:.2f})")
+        # Add cosine squared bump at clicked point
+        values = add_cosine_squared_bump(values, (int(x_click), int(y_click)), peak_height, peak_radius)
+        #values = add_hard_stop_circle(values, (int(x_click), int(y_click)), peak_radius)
+        
+        # Recompute the gradient descent path after adding the peak
+        path = gradient_descent_on_function(values, start, end_point, grid_shape)
+        plot_results(values, path, grid_shape)
+        
+    elif event.button == 3:  # Right click
+        print("Resetting to initial funnel profile")
+        # Reset to initial funnel profile
+        values = create_base_cost_map(grid_shape, end_point)
+        
+        # Recompute the gradient descent path with the reset profile
+        path = gradient_descent_on_function(values, start, end_point, grid_shape)
+        plot_results(values, path, grid_shape)
+
+# Global variables to track the state
+peak_radius = 4
+peak_height = 50
+start = (10, 5)  # Starting point
+end_point = (40, 20)  # End point
 grid_shape = (27, 54)  # Y-axis is 27 units tall, X-axis is 54 units wide
-end_point = (40, 20)  # This is in (x, y) format
-values = create_funnel(grid_shape, end_point)
 
-# Add a cosine-shaped bump within a square region
-peak_center = (15, 15)  # This is in (x, y) format
-peak_height =10  # Peak height 10 times its original
-peak_radius = 15
-values = add_cosine_bump(values, peak_center, peak_height, peak_radius)
+# Create initial funnel
+values = create_base_cost_map(grid_shape, end_point)
 
-peak_center = (27,5)
-values = add_cosine_bump(values, peak_center, peak_height, peak_radius)
+# Compute initial path
+path = gradient_descent_on_function(values, start, end_point, grid_shape)
 
-
-# Define start point
-start = (1, 1)  # This is in (x, y) format
-
-# Perform gradient descent with the proximity threshold
-path, grid = gradient_descent_on_function(values, start, end_point, grid_shape, step_size=0.5, proximity_threshold=1.5)
+# Set up the plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 plot_results(values, path, grid_shape)
+
+# Connect the click event
+cid = fig.canvas.mpl_connect('button_press_event', onclick)
+
+plt.show()
