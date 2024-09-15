@@ -2,25 +2,34 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import random
+from wpimath.geometry import Pose2d, Rotation2d
+
+FIELD_X_M = 16.54
+FIELD_Y_M = 8.21
 
 class CostMap:
-    def __init__(self, grid_shape: tuple[int, int], end_point: tuple[int, int]):
-        self.grid_shape = grid_shape
-        self.end_point = end_point
-        self.base_grid = self.create_base_cost_map()
+    def __init__(self, grid_size_m:float, end_pose: Pose2d, base_grid:np.ndarray|None=None):
+        self.grid_size_m = grid_size_m
+        self.end_pose = end_pose
+        self.grid_shape = (round(FIELD_Y_M/grid_size_m), round(FIELD_X_M/grid_size_m))
+        self.end_point = round(end_pose.Y()/grid_size_m), round(end_pose.X()/grid_size_m)
+        if(base_grid is None):
+            self.base_grid = self._create_base_cost_map()
+        else:
+            self.base_grid = base_grid
 
-    def create_base_cost_map(self) -> np.ndarray:
+    def _create_base_cost_map(self) -> np.ndarray:
         # Defines the base cost map
         y_end, x_end = self.end_point
         y, x = np.indices(self.grid_shape)
         grid = np.sqrt((x - x_end) ** 2 + (y - y_end) ** 2)
 
         # Apply cost of hitting walls
-        self.block_walls(grid)
+        self._block_walls(grid)
 
         return grid
 
-    def block_walls(self, grid: np.ndarray, wall_height: float = 100):
+    def _block_walls(self, grid: np.ndarray, wall_height: float = 100):
         # Make sure hitting walls is high cost
         grid[0, :] = wall_height       # Top row
         grid[-1, :] = wall_height      # Bottom row
@@ -29,17 +38,19 @@ class CostMap:
 
     def get_copy(self) -> 'CostMap':
         # Returns a new CostMap instance with a copy of the base grid
-        new_cost_map = CostMap(self.grid_shape, self.end_point)
-        new_cost_map.base_grid = np.copy(self.base_grid)
-        return new_cost_map
+        base_grid_copy = np.copy(self.base_grid)
+        return CostMap(self.grid_size_m, self.end_pose, base_grid_copy)
 
-    def add_cosine_squared_bump(self, peak_center: tuple[int, int], peak_height: float, peak_radius: float):
-        y_peak, x_peak = peak_center  
+    def add_cosine_squared_bump(self, peak_center: Pose2d, peak_height: float, peak_radius_m: float):
+        y_peak = peak_center.Y()/self.grid_size_m
+        x_peak = peak_center.X()/self.grid_size_m
+        peak_radius = peak_radius_m/cost_map_copy.grid_size_m
 
-        y_min = round(y_peak - peak_radius)
-        x_min = round(x_peak - peak_radius)
-        y_max = round(y_peak + peak_radius)
-        x_max = round(x_peak + peak_radius)
+        y_min = max(0,round(y_peak - peak_radius))
+        x_min = max(0,round(x_peak - peak_radius))
+        y_max = min(round(y_peak + peak_radius),self.grid_shape[0])
+        x_max = min(round(x_peak + peak_radius),self.grid_shape[1])
+
 
         for y in range(y_min, y_max, 1):
             for x in range(x_min, x_max, 1):
@@ -50,12 +61,15 @@ class CostMap:
                     bump = peak_height * math.cos(math.pi * distance / (2 * peak_radius)) ** 2
                     self.base_grid[y, x] += bump
 
-    def calculate_path(self, start: tuple[int, int], step_size: float = 0.75) -> np.ndarray:
+    def calculate_path(self, start_pose: Pose2d, step_size_m: float = 0.25) -> np.ndarray:
         # Calculate a gradient descent path using the base grid
-        return self.gradient_descent_on_function(start, step_size)
+        start = (round(start_pose.Y()/self.grid_size_m), round(start_pose.X()/self.grid_size_m))
+        step_size = step_size_m/self.grid_size_m
+        grid_path = self._gradient_descent_on_function(start, step_size)
+        grid_path *= self.grid_size_m
+        return grid_path
 
-    def gradient_descent_on_function(self, start: tuple[int, int], step_size: float = 0.75) -> np.ndarray:
-        grid = self.base_grid
+    def _gradient_descent_on_function(self, start: tuple[int, int], step_size: float) -> np.ndarray:
 
         proximity_threshold = step_size * 1.25
 
@@ -74,15 +88,12 @@ class CostMap:
                 raise ValueError("Starting point or end point is out of bounds.")
             
             # Calculate interpolated gradients
-            grad_x, grad_y = self.interpolate_gradient(x, y)
+            grad_x, grad_y = self._interpolate_gradient(x, y)
             
             grad_mag = np.sqrt(grad_x ** 2 + grad_y ** 2)
-
-            # Add a small factor of randomness to the next step choice to help avoid cases of getting stuck in cycles.
-            random_perturbation = 0.1
             
-            delta_x = -1.0 * step_size * grad_x / grad_mag + random.uniform(step_size * -random_perturbation, step_size * random_perturbation)
-            delta_y = -1.0 * step_size * grad_y / grad_mag + random.uniform(step_size * -random_perturbation, step_size * random_perturbation)
+            delta_x = -1.0 * step_size * grad_x / grad_mag
+            delta_y = -1.0 * step_size * grad_y / grad_mag
 
             # Update positions based on gradient direction
             new_x = x + delta_x
@@ -112,9 +123,10 @@ class CostMap:
             print("Max iterations reached. Stopping.")
 
         # Simplify the path
-        return self.resample_path(path, 3.0)
+        #return np.array(path)
+        return self._resample_path(path, 2.5)
 
-    def interpolate_gradient(self, x: float, y: float) -> tuple[float, float]:
+    def _interpolate_gradient(self, x: float, y: float) -> tuple[float, float]:
         # Get the integer parts and the fractional parts
         grid = self.base_grid
         x0, y0 = int(np.floor(x)), int(np.floor(y))
@@ -131,10 +143,10 @@ class CostMap:
         grad_y01 = grid[y1, x1] - grid[y0, x1]  # Gradient in y-direction at (x1, y0) to (x1, y1)
         
         # Interpolate in the x-direction for grad_x
-        grad_x0 = self.linear_interpolate(grad_x00, grad_x10, dy)
+        grad_x0 = self._linear_interpolate(grad_x00, grad_x10, dy)
         
         # Interpolate in the y-direction for grad_y
-        grad_y0 = self.linear_interpolate(grad_y00, grad_y01, dx)
+        grad_y0 = self._linear_interpolate(grad_y00, grad_y01, dx)
         
         # Interpolated gradients at (x, y)
         grad_x = grad_x0
@@ -143,11 +155,11 @@ class CostMap:
         return grad_x, grad_y
 
     @staticmethod
-    def linear_interpolate(value1: float, value2: float, ratio: float) -> float:
+    def _linear_interpolate(value1: float, value2: float, ratio: float) -> float:
         return value1 * (1 - ratio) + value2 * ratio
 
     @staticmethod
-    def resample_path(path: list[np.ndarray], min_dist: float) -> np.ndarray:
+    def _resample_path(path: list[np.ndarray], min_dist: float) -> np.ndarray:
         smoothed_path = []
         num_points = len(path)
 
@@ -170,45 +182,44 @@ class CostMap:
 
         return np.array(smoothed_path)
 
-def plot_results(values: np.ndarray, path: np.ndarray, grid_shape: tuple[int, int]):
+def plot_results(values: np.ndarray, path: np.ndarray, grid_shape: tuple[int, int], grid_size_m: float):
     global ax1, cid
     grid = np.reshape(values, grid_shape)
     
     ax1.clear()
 
-    ax1.imshow(grid.T, cmap='viridis', origin='lower', extent=[0, 54, 0, 27])
-    ax1.plot(path[:, 1], path[:, 0], 'r-', marker='o', markersize=5, label='Path')
+    ax1.imshow(grid, cmap='viridis', origin='lower')
+    ax1.plot(path[:, 0]/grid_size_m, path[:, 1]/grid_size_m, 'r-', marker='o', markersize=5, label='Path')
     ax1.set_title('Gradient Descent Path')
     ax1.legend()
-    ax1.set_xlabel('X (feet)')
-    ax1.set_ylabel('Y (feet)')
+    ax1.set_xlabel('X (grid)')
+    ax1.set_ylabel('Y (grid)')
 
     plt.draw()
 
 def onclick(event):
-    global cost_map, cost_map_copy, peak_radius, peak_height, start, path
+    global cost_map, cost_map_copy, peak_height, start, path
     
-    # Create cosine-squared bump
-    cost_map.add_cosine_squared_bump((round(event.xdata), round(event.ydata)), peak_height, peak_radius)
-    
-    # Reset and find a new path
-    cost_map_copy = cost_map.get_copy()
+    if event.button == 1:  # Left click
+        # Create cosine-squared bump
+        obstructionPose = Pose2d(event.xdata*cost_map_copy.grid_size_m, event.ydata*cost_map_copy.grid_size_m, Rotation2d.fromDegrees(0.0))
+        cost_map_copy.add_cosine_squared_bump(obstructionPose, 200.0, 1.0)
+        
+    elif event.button == 3: # Right Click
+        # Reset and find a new path
+        cost_map_copy = cost_map.get_copy()
+
+    # Calc and Plot the path
     path = cost_map_copy.calculate_path(start)
-    
-    # Plot the path
-    plot_results(cost_map_copy.base_grid, path, cost_map.grid_shape)
+    plot_results(cost_map_copy.base_grid, path, cost_map_copy.grid_shape, cost_map_copy.grid_size_m)
 
 def main():
-    global cost_map, cost_map_copy, peak_radius, peak_height, start, path, ax1, cid
+    global cost_map, cost_map_copy, start, path, ax1, cid
 
-    grid_shape = (54, 27)
-    end_point = (40, 20)
-    start = (5, 2)
-    
-    peak_radius = 3.0
-    peak_height = 30.0
-    
-    cost_map = CostMap(grid_shape, end_point)
+    end_point = Pose2d.fromFeet(40,20,Rotation2d.fromDegrees(0.0))
+    start = Pose2d.fromFeet(2,5,Rotation2d.fromDegrees(0.0))
+        
+    cost_map = CostMap(0.3, end_point)
     cost_map_copy = cost_map.get_copy()
 
     # Set up interactive plot
@@ -218,7 +229,7 @@ def main():
 
     # Plot initial result
     path = cost_map_copy.calculate_path(start)
-    plot_results(cost_map.base_grid, path, cost_map.grid_shape)
+    plot_results(cost_map_copy.base_grid, path, cost_map_copy.grid_shape, cost_map.grid_size_m)
     
     plt.show()
 
