@@ -7,7 +7,7 @@ def create_base_cost_map(grid_shape, end_point):
 
     # Points further from the goal are costly
     # This should, by default, "Funnel" all paths toward the goal
-    x_end, y_end = end_point
+    y_end, x_end = end_point
     y, x = np.indices(grid_shape)
     grid = np.sqrt((x - x_end)**2 + (y - y_end)**2) 
 
@@ -23,44 +23,25 @@ def block_walls(grid, wall_height=100):
     grid[:, 0] = wall_height       # Left column
     grid[:, -1] = wall_height      # Right column
 
+
 def add_cosine_squared_bump(grid, peak_center, peak_height, peak_radius):
-    x_peak, y_peak = peak_center
-    y, x = np.indices(grid.shape)
-    
-    # Calculate distance from peak center (circular radius)
-    distance = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
-    within_radius = distance < peak_radius
-    
-    # Apply the cosine squared bump function within the circular region
-    bump = np.where(
-        within_radius, 
-        peak_height * np.maximum(np.cos(np.pi * distance / (2 * peak_radius))**2, 0), 
-        0
-    )
-    
-    # Add bump to the grid
-    grid += bump
-    return grid
+    y_peak, x_peak = peak_center  
 
-def add_hard_stop_circle(grid, peak_center, peak_radius):
-    x_peak, y_peak = peak_center
-    y, x = np.indices(grid.shape)
-    
-    # Calculate distance from peak center (circular radius)
-    distance = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
-    within_radius = distance < peak_radius
-    
-    # Apply the cosine squared bump function within the circular region
-    bump = np.where(
-        within_radius, 
-        100.0,
-        0
-    )
-    
-    # Add bump to the grid
-    grid += bump
-    return grid
+    y_min = round(y_peak - peak_radius)
+    x_min = round(x_peak - peak_radius)
+    y_max = round(y_peak + peak_radius)
+    x_max = round(x_peak + peak_radius)
 
+    for y in range(y_min, y_max, 1):
+        for x in range(x_min, x_max, 1):
+            # Calculate distance from peak center (circular radius)
+            distance = np.sqrt((y - y_peak)**2 + (x - x_peak)**2)
+            within_radius = distance < peak_radius
+            if within_radius:
+                bump = peak_height * math.cos(math.pi * distance / (2 * peak_radius))**2
+                grid[y, x] += bump  
+
+    return grid
 
 def linear_interpolate(value1, value2, ratio):
     return value1 * (1 - ratio) + value2 * ratio
@@ -92,39 +73,13 @@ def interpolate_gradient(grid, x, y):
     
     return grad_x, grad_y
 
-## TODO - this does not work yet.
-def detect_backtracking(path, step_size, num_points=8):
-    if len(path) < num_points:
-        return False
-    
-    dist_range_thresh = step_size * 1.5
-
-    most_recent_points = np.array(path[-num_points:])
-    print("=============")
-    
-    # Compute pairwise distances between the most recent points
-    distances = []
-    for i in range(num_points):
-        for j in range(i + 1, num_points):
-            delta = np.linalg.norm(most_recent_points[i] - most_recent_points[j])
-            distances.append(delta)
-    
-    # Calculate the maximum distance between any two points
-    maxDist = np.max(distances)
-    print(f"MaxDistances={maxDist}")
-
-    # Check if the points are not spaced out enough
-    if maxDist < dist_range_thresh:
-        return True
-    return False
-
 def gradient_descent_on_function(values, start, end, grid_shape, step_size=0.75):
     grid = np.reshape(values, grid_shape)
 
     proximity_threshold = step_size * 1.25
 
-    x, y = start
-    x_end, y_end = end
+    y, x = start
+    y_end, x_end = end
     
     # Calcualte a max iterations based on the distance we're traversing
     straightline_x = x_end - x
@@ -165,13 +120,6 @@ def gradient_descent_on_function(values, start, end, grid_shape, step_size=0.75)
         if distance_to_target >= proximity_threshold:
             # Too far away, we'll keep going
             path.append(new_point)
-        
-            # Check for backtracking (four points within 2 step sizes)
-            # if detect_backtracking(path, step_size):
-            #     print(f"Backtracking detected at step {step}. Stopping.")
-            #     return np.array(path[:-1])  # Return path without final backtracking point
-                
-            # Move to the new point
             x, y = new_x, new_y
             
         else:
@@ -212,23 +160,17 @@ def resample_path(path, min_dist):
     return np.array(smoothed_path)
 
 def plot_results(values, path, grid_shape):
-    global ax1, ax2, cid
+    global ax1,  cid
     grid = np.reshape(values, grid_shape)
     
     ax1.clear()
-    ax2.clear()
 
     ax1.imshow(grid, cmap='viridis', origin='lower', extent=[0, 54, 0, 27])
-    ax1.set_title('Function Values')
+    ax1.plot(path[:, 0], path[:, 1], 'r-', marker='o', markersize=5, label='Path')
+    ax1.set_title('Gradient Descent Path')
+    ax1.legend()
     ax1.set_xlabel('X (feet)')
     ax1.set_ylabel('Y (feet)')
-    
-    ax2.imshow(grid, cmap='viridis', origin='lower', extent=[0, 54, 0, 27])
-    ax2.plot(path[:, 0], path[:, 1], 'r-', marker='o', markersize=5, label='Path')
-    ax2.set_title('Gradient Descent Path')
-    ax2.legend()
-    ax2.set_xlabel('X (feet)')
-    ax2.set_ylabel('Y (feet)')
 
     plt.draw()
 
@@ -236,7 +178,7 @@ def onclick(event):
     global values, peak_radius, peak_height, end_point, start, path, grid_shape
     
     # Ignore clicks outside the axes
-    if event.inaxes not in [ax1, ax2]:
+    if event.inaxes not in [ax1]:
         return
     
     x_click, y_click = event.xdata, event.ydata
@@ -244,8 +186,7 @@ def onclick(event):
     if event.button == 1:  # Left click
         print(f"Adding peak at ({x_click:.2f}, {y_click:.2f})")
         # Add cosine squared bump at clicked point
-        values = add_cosine_squared_bump(values, (int(x_click), int(y_click)), peak_height, peak_radius)
-        #values = add_hard_stop_circle(values, (int(x_click), int(y_click)), peak_radius)
+        values = add_cosine_squared_bump(values, (int(y_click), int(x_click)), peak_height, peak_radius)
         
         # Recompute the gradient descent path after adding the peak
         path = gradient_descent_on_function(values, start, end_point, grid_shape)
@@ -263,8 +204,8 @@ def onclick(event):
 # Global variables to track the state
 peak_radius = 4
 peak_height = 50
-start = (10, 5)  # Starting point
-end_point = (40, 20)  # End point
+start = (5, 1)  # Starting point (in y,x format)
+end_point = (20, 40)  # End point (in y, x format)
 grid_shape = (27, 54)  # Y-axis is 27 units tall, X-axis is 54 units wide
 
 # Create initial funnel
@@ -274,7 +215,7 @@ values = create_base_cost_map(grid_shape, end_point)
 path = gradient_descent_on_function(values, start, end_point, grid_shape)
 
 # Set up the plot
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+fig, ax1 = plt.subplots(1, 1, figsize=(12, 6))
 plot_results(values, path, grid_shape)
 
 # Connect the click event
