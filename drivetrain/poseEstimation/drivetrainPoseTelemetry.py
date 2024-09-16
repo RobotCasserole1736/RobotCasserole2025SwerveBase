@@ -22,6 +22,7 @@ class DrivetrainPoseTelemetry:
         self.field = wpilib.Field2d()
         wpilib.SmartDashboard.putData("DT Pose 2D", self.field)
         self.curTraj = Trajectory()
+        self.curTrajWaypoints = []
         self.desPose = Pose2d()
 
         self.leftCamPosePublisher = (
@@ -40,6 +41,9 @@ class DrivetrainPoseTelemetry:
 
     def setDesiredPose(self, desPose):
         self.desPose = desPose
+
+    def setCurTrajWaypoints(self, waypoints):
+        self.curTrajWaypoints = waypoints
 
     def addVisionObservations(self, observations:list[CameraPoseObservation]):
         if(len(observations) > 0):
@@ -62,6 +66,7 @@ class DrivetrainPoseTelemetry:
 
         self.field.getObject("desPose").setPose(self.desPose)
         self.field.getObject("desTraj").setTrajectory(self.curTraj)
+        self.field.getObject("desTrajWaypoints").setPoses(self.curTrajWaypoints)
 
         self.field.getObject("visionObservations").setPoses(self.visionPoses)
         self.visionPoses = []

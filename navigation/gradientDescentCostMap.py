@@ -74,7 +74,7 @@ class GradientDescentCostMap:
     def _toPoseList(path:np.ndarray) -> list[Translation2d]:
         retList=[]
         for point in path:
-            retList.append(Translation2d(point[1], point[0]))
+            retList.append(Translation2d(point[0], point[1]))
         return retList
 
     def _gradient_descent_on_function(self, start: tuple[int, int], step_size: float) -> np.ndarray:

@@ -1,5 +1,5 @@
 import numpy as np
-from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.trajectory import Trajectory, TrajectoryConfig, TrajectoryGenerator
 from wpilib import Timer
 from drivetrain.drivetrainPhysical import MAX_FWD_REV_SPEED_MPS, MAX_TRANSLATE_ACCEL_MPS2
@@ -32,6 +32,7 @@ class DynamicPathPlanner():
         self.curGoal = GOAL_PICKUP
         self.replanNeeded = False
         self.curTraj:Trajectory|None = None
+        self.waypoints:list[Translation2d]|None = None
         self.trajStartTime_s:float|None = None
         self.trajCfg = TrajectoryConfig(MAX_FWD_REV_SPEED_MPS, MAX_TRANSLATE_ACCEL_MPS2)
         self.replanThread = Thread(name="Nav DPP Replan Thread", target=self.replanThreadMain, daemon=True)
@@ -89,9 +90,6 @@ class DynamicPathPlanner():
                 self.replanNeeded = False
             self.telem.update(workingGrid)
 
-
-
-
     def _do_replan(self, curPose:Pose2d) -> np.ndarray:
 
         workingMap = self.curGoal.baseMap.get_copy()
@@ -111,10 +109,10 @@ class DynamicPathPlanner():
                                         obs.radius_m)
         
         # Calc a new path
-        waypoints = workingMap.calculate_path(curPose)
+        self.waypoints = workingMap.calculate_path(curPose)
 
         # TODO - initial velocity
-        self.curTraj = TrajectoryGenerator.generateTrajectory(curPose, waypoints, self.curGoal.endPose, self.trajCfg)
+        self.curTraj = TrajectoryGenerator.generateTrajectory(curPose, self.waypoints, self.curGoal.endPose, self.trajCfg)
         self.trajStartTime_s = Timer.getFPGATimestamp()
 
         return workingMap.base_grid

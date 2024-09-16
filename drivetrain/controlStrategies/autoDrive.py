@@ -1,7 +1,8 @@
+from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.trajectory import Trajectory
 from drivetrain.drivetrainCommand import DrivetrainCommand
-from wpimath.geometry import Pose2d
 from utils.singleton import Singleton
-from navigation.dynamicPathPlanner import DynamicPathPlanner, GOAL_PICKUP, GOAL_SPEAKER
+from navigation.dynamicPathPlanner import GOAL_PICKUP, GOAL_SPEAKER, DynamicPathPlanner
 
 class AutoDrive(metaclass=Singleton):
     def __init__(self):
@@ -16,8 +17,19 @@ class AutoDrive(metaclass=Singleton):
         self._toSpeaker = toSpeaker
         self._toPickup = toPickup
 
-    def getTrajectory(self):
+    def getTrajectory(self) -> Trajectory|None:
         return self._dpp.curTraj
+    
+    def getWaypoints(self) -> list[Pose2d]:
+        retArr = []
+
+        if(self._dpp.waypoints is not None):
+            retArr.append(self._dpp.curPose)
+            for trans in self._dpp.waypoints:
+                retArr.append(Pose2d(trans, Rotation2d.fromDegrees(0)))
+            retArr.append(self._dpp.curGoal.endPose)
+
+        return retArr
 
     def update(self, cmdIn: DrivetrainCommand, curPose: Pose2d) -> DrivetrainCommand:
 

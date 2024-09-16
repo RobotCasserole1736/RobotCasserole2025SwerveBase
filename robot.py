@@ -102,6 +102,7 @@ class MyRobot(wpilib.TimedRobot):
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
         self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
+        self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
 
         # No trajectory in Teleop
         Trajectory().setCmd(None)
