@@ -12,9 +12,9 @@ from drivetrain.drivetrainPhysical import (
     BR_ENCODER_MOUNT_OFFSET_RAD,
     kinematics,
 )
+from drivetrain.drivetrainCommand import DrivetrainCommand
 from drivetrain.controlStrategies.autoDrive import AutoDrive
 from drivetrain.controlStrategies.trajectory import Trajectory
-from drivetrain.drivetrainCommand import DrivetrainCommand
 from utils.singleton import Singleton
 from utils.allianceTransformUtils import onRed
 from utils.constants import (DT_FL_WHEEL_CANID, 

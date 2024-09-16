@@ -97,6 +97,15 @@
       }
     },
     "transitory": {
+      "CameraPublisher": {
+        "CostMap_Nav": {
+          "open": true,
+          "string[]##v_/CameraPublisher/CostMap_Nav/streams": {
+            "open": true
+          }
+        },
+        "open": true
+      },
       "SmartDashboard": {
         "open": true
       }

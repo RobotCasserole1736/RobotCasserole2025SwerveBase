@@ -1,3 +1,4 @@
+import numpy as np
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.trajectory import Trajectory, TrajectoryConfig, TrajectoryGenerator
 from wpilib import Timer
@@ -6,13 +7,13 @@ from drivetrain.drivetrainControl import DrivetrainCommand
 from threading import Thread
 from time import sleep
 
-from navigation.gradientDescent import GradientDescentCostMap
-
+from navigation.costMapTelemetry import CostMapTelemetry
+from navigation.gradientDescentCostMap import GradientDescentCostMap
 
 class DynamicPathPlannerGoal():
     def __init__(self, endPose:Pose2d):
         self.endPose = endPose
-        self.baseMap = GradientDescentCostMap(0.5,self.endPose)
+        self.baseMap = GradientDescentCostMap(self.endPose)
 
 GOAL_PICKUP = DynamicPathPlannerGoal(Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0)))
 GOAL_SPEAKER = DynamicPathPlannerGoal(Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(0.0)))
@@ -36,6 +37,8 @@ class DynamicPathPlanner():
         self.replanThread = Thread(name="Nav DPP Replan Thread", target=self.replanThreadMain, daemon=True)
         self.replanThread.start()
         self.curPose = Pose2d()
+        self.telem = CostMapTelemetry("Nav")
+
 
     def changeGoal(self, goal:DynamicPathPlannerGoal, curPose:Pose2d):
         self.curGoal = goal
@@ -78,14 +81,18 @@ class DynamicPathPlanner():
             return DrivetrainCommand()
        
     def replanThreadMain(self):
+        workingGrid = None
         while(True):
             sleep(0.2)
             if(self.replanNeeded):
-                self._do_replan(self.curPose)
+                workingGrid = self._do_replan(self.curPose)
                 self.replanNeeded = False
+            self.telem.update(workingGrid)
 
 
-    def _do_replan(self, curPose:Pose2d):
+
+
+    def _do_replan(self, curPose:Pose2d) -> np.ndarray:
 
         workingMap = self.curGoal.baseMap.get_copy()
 
@@ -102,10 +109,12 @@ class DynamicPathPlanner():
                 workingMap.add_obstacle(obs.pose,
                                         self._obstacleCostHeuristic(timeToLive),
                                         obs.radius_m)
-
+        
         # Calc a new path
         waypoints = workingMap.calculate_path(curPose)
 
         # TODO - initial velocity
         self.curTraj = TrajectoryGenerator.generateTrajectory(curPose, waypoints, self.curGoal.endPose, self.trajCfg)
         self.trajStartTime_s = Timer.getFPGATimestamp()
+
+        return workingMap.base_grid

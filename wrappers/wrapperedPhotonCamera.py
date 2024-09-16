@@ -1,7 +1,7 @@
 import wpilib
 from wpimath.units import feetToMeters
 from wpimath.geometry import Pose2d
-from photonlibpy import PhotonCamera
+from photonlibpy.photonCamera import PhotonCamera
 from photonlibpy.photonCamera import setVersionCheckEnabled
 from utils.fieldTagLayout import FieldTagLayout
 from utils.faults import Fault

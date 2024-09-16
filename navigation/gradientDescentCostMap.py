@@ -3,15 +3,15 @@ import matplotlib.pyplot as plt
 import math
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 
-FIELD_X_M = 16.54
-FIELD_Y_M = 8.21
+from navigation.navConstants import GRID_SIZE_M, GRID_SIZE_X, GRID_SIZE_Y
+
+
 
 class GradientDescentCostMap:
-    def __init__(self, grid_size_m:float, end_pose: Pose2d, base_grid:np.ndarray|None=None):
-        self.grid_size_m = grid_size_m
+    def __init__(self, end_pose: Pose2d, base_grid:np.ndarray|None=None):
         self.end_pose = end_pose
-        self.grid_shape = (round(FIELD_Y_M/grid_size_m), round(FIELD_X_M/grid_size_m))
-        self.end_point = round(end_pose.Y()/grid_size_m), round(end_pose.X()/grid_size_m)
+        self.grid_shape = (GRID_SIZE_Y, GRID_SIZE_X)
+        self.end_point = round(end_pose.Y()/GRID_SIZE_M), round(end_pose.X()/GRID_SIZE_M)
         if(base_grid is None):
             self.base_grid = self._create_base_cost_map()
         else:
@@ -38,12 +38,12 @@ class GradientDescentCostMap:
     def get_copy(self) -> 'GradientDescentCostMap':
         # Returns a new CostMap instance with a copy of the base grid
         base_grid_copy = np.copy(self.base_grid)
-        return GradientDescentCostMap(self.grid_size_m, self.end_pose, base_grid_copy)
+        return GradientDescentCostMap(self.end_pose, base_grid_copy)
 
     def add_obstacle(self, pose: Pose2d, cost: float, radius_m: float):
-        y_peak = pose.Y()/self.grid_size_m
-        x_peak = pose.X()/self.grid_size_m
-        peak_radius = radius_m/cost_map_copy.grid_size_m
+        y_peak = pose.Y()/GRID_SIZE_M
+        x_peak = pose.X()/GRID_SIZE_M
+        peak_radius = radius_m/GRID_SIZE_M
 
         y_min = max(0,round(y_peak - peak_radius))
         x_min = max(0,round(x_peak - peak_radius))
@@ -62,13 +62,13 @@ class GradientDescentCostMap:
 
     def _calculate_path_int(self, start_pose: Pose2d, step_size_m: float) -> np.ndarray:
         # Calculate a gradient descent path using the base grid
-        start = (round(start_pose.Y()/self.grid_size_m), round(start_pose.X()/self.grid_size_m))
-        step_size = step_size_m/self.grid_size_m
+        start = (round(start_pose.Y()/GRID_SIZE_M), round(start_pose.X()/GRID_SIZE_M))
+        step_size = step_size_m/GRID_SIZE_M
         grid_path = self._gradient_descent_on_function(start, step_size)
         return grid_path
    
     def calculate_path(self, start_pose: Pose2d, step_size_m: float = 0.25) -> list[Translation2d]:
-        return self._toPoseList(self._calculate_path_int(start_pose,step_size_m) * self.grid_size_m)
+        return self._toPoseList(self._calculate_path_int(start_pose,step_size_m) * GRID_SIZE_M)
 
     @staticmethod
     def _toPoseList(path:np.ndarray) -> list[Translation2d]:
@@ -194,7 +194,7 @@ class GradientDescentCostMap:
 
         return np.array(smoothed_path)
 
-def plot_results(values: np.ndarray, path: np.ndarray, grid_shape: tuple[int, int], grid_size_m: float):
+def plot_results(values: np.ndarray, path: np.ndarray, grid_shape: tuple[int, int], GRID_SIZE_M: float):
     global ax1, cid
     grid = np.reshape(values, grid_shape)
    
@@ -214,7 +214,7 @@ def onclick(event):
    
     if event.button == 1:  # Left click
         # Create cosine-squared bump
-        obstructionPose = Pose2d(event.xdata*cost_map_copy.grid_size_m, event.ydata*cost_map_copy.grid_size_m, Rotation2d.fromDegrees(0.0))
+        obstructionPose = Pose2d(event.xdata*GRID_SIZE_M, event.ydata*GRID_SIZE_M, Rotation2d.fromDegrees(0.0))
         cost_map_copy.add_obstacle(obstructionPose, 200.0, 1.0)
        
     elif event.button == 3: # Right Click
@@ -223,7 +223,7 @@ def onclick(event):
 
     # Calc and Plot the path
     path = cost_map_copy._calculate_path_int(start, 0.25)
-    plot_results(cost_map_copy.base_grid, path, cost_map_copy.grid_shape, cost_map_copy.grid_size_m)
+    plot_results(cost_map_copy.base_grid, path, cost_map_copy.grid_shape, GRID_SIZE_M)
 
 def main():
     global cost_map, cost_map_copy, start, path, ax1, cid
@@ -231,7 +231,7 @@ def main():
     end_point = Pose2d.fromFeet(40,20,Rotation2d.fromDegrees(0.0))
     start = Pose2d.fromFeet(2,5,Rotation2d.fromDegrees(0.0))
        
-    cost_map = GradientDescentCostMap(0.3, end_point)
+    cost_map = GradientDescentCostMap(end_point)
     cost_map_copy = cost_map.get_copy()
 
     # Set up interactive plot
@@ -241,7 +241,7 @@ def main():
 
     # Plot initial result
     path = cost_map_copy._calculate_path_int(start, 0.25)
-    plot_results(cost_map_copy.base_grid, path, cost_map_copy.grid_shape, cost_map.grid_size_m)
+    plot_results(cost_map_copy.base_grid, path, cost_map_copy.grid_shape, GRID_SIZE_M)
    
     plt.show()
 
