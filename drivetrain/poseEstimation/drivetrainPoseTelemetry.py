@@ -76,11 +76,22 @@ class DrivetrainPoseTelemetry:
         log("DT Pose Des Y", metersToFeet(self.desPose.Y()), "ft")
         log("DT Pose Des T", self.desPose.rotation().degrees(), "deg")
 
-    def setTrajectory(self, trajIn):
+    def setWPITrajectory(self, trajIn):
         """Display a specific trajectory on the robot Field2d
 
         Args:
-            trajIn (PathPlannerTrajectory): The trajectory to display
+            trajIn (WPI Trajectory): The trajectory to display
+        """
+        if(trajIn is not None):
+            self.curTraj = trajIn
+        else:
+            self.curTraj = Trajectory()
+
+    def setChoreoTrajectory(self, trajIn):
+        """Display a specific trajectory on the robot Field2d
+
+        Args:
+            trajIn (Choreo Trajectory object): The trajectory to display
         """
         # Transform choreo state list into useful trajectory for telemetry
         if trajIn is not None:

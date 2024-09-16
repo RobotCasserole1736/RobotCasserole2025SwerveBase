@@ -30,7 +30,7 @@ class DrivePathCommand(Command):
         self.startTime = (
             -1
         )
-        
+       
         # we'll populate these for real later, just declare they'll exist
         self.duration = self.path.getTotalTime()
         self.drivetrain = DrivetrainControl()
@@ -38,7 +38,7 @@ class DrivePathCommand(Command):
 
     def initialize(self):
         self.startTime = Timer.getFPGATimestamp()
-        self.poseTelem.setTrajectory(self.path)
+        self.poseTelem.setChoreoTrajectory(self.path)
 
     def execute(self):
         curTime = Timer.getFPGATimestamp() - self.startTime
@@ -50,7 +50,7 @@ class DrivePathCommand(Command):
 
         if curTime >= self.duration:
             self.trajCtrl.setCmd(None)
-            self.poseTelem.setTrajectory(None)
+            self.poseTelem.setChoreoTrajectory(None)
             self.done = True
 
     def isDone(self):
@@ -58,7 +58,7 @@ class DrivePathCommand(Command):
 
     def end(self,interrupt):
         self.trajCtrl.setCmd(None)
-        self.poseTelem.setTrajectory(None)
+        self.poseTelem.setChoreoTrajectory(None)
 
     def getName(self):
         return f"Drive Trajectory {self.name}"

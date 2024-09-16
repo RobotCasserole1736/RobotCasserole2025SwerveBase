@@ -23,6 +23,8 @@ class DriverInterface:
         self.velXSlewRateLimiter = SlewRateLimiter(rateLimit=MAX_TRANSLATE_ACCEL_MPS2)
         self.velYSlewRateLimiter = SlewRateLimiter(rateLimit=MAX_TRANSLATE_ACCEL_MPS2)
         self.velTSlewRateLimiter = SlewRateLimiter(rateLimit=MAX_ROTATE_ACCEL_RAD_PER_SEC_2)
+        self.navToSpeaker = False
+        self.navToPickup = False
 
     def update(self):
         # value of contoller buttons
@@ -54,9 +56,12 @@ class DriverInterface:
             # Slew rate limiter
             self.velXCmd = self.velXSlewRateLimiter.calculate(velCmdXRaw)
             self.velYCmd = self.velYSlewRateLimiter.calculate(velCmdYRaw)
-            self.velTCmd = self.velTSlewRateLimiter.calculate(velCmdRotRaw) 
+            self.velTCmd = self.velTSlewRateLimiter.calculate(velCmdRotRaw)
 
-            self.gyroResetCmd = self.ctrl.getAButtonPressed()
+            self.gyroResetCmd = self.ctrl.getAButton()
+
+            self.navToSpeaker = self.ctrl.getBButton()
+            self.navToPickup = self.ctrl.getXButton()
 
             self.connectedFault.setNoFault()
 
@@ -66,6 +71,8 @@ class DriverInterface:
             self.velYCmd = 0.0
             self.velTCmd = 0.0
             self.gyroResetCmd = False
+            self.navToSpeaker = False
+            self.navToPickup = False
             self.connectedFault.setFaulted()
 
 
@@ -74,6 +81,8 @@ class DriverInterface:
         log("DI Rot Cmd", self.velTCmd, "radps")
         log("DI connective fault", self.ctrl.isConnected(), "bool")
         log("DI gyroResetCmd", self.gyroResetCmd, "bool")
+        log("DI navToSpeaker", self.navToSpeaker, "bool")
+        log("DI navToPickup", self.navToPickup, "bool")
 
     def getCmd(self):
         retval = DrivetrainCommand()
@@ -82,7 +91,11 @@ class DriverInterface:
         retval.velT = self.velTCmd
         return retval
 
-
+    def getNavToSpeaker(self):
+        return self.navToSpeaker
+    
+    def getNavToPickup(self):
+        return self.navToPickup
 
     def getGyroResetCmd(self):
         return self.gyroResetCmd

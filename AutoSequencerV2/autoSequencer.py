@@ -25,8 +25,8 @@ class AutoSequencer(metaclass=Singleton):
         self.mainModeList = ModeList("Main")
         self.mainModeList.addMode(DriveOut())
         self.mainModeList.addMode(DoNothingMode())
-        
-        
+       
+       
 
 
         self.topLevelCmdGroup = SequentialCommandGroup()
@@ -67,7 +67,7 @@ class AutoSequencer(metaclass=Singleton):
 
     # Call this once during autonmous init to init the current command sequence
     def initialize(self):
-        self.updateMode() # Last-shot update before starting autonomous 
+        self.updateMode() # Last-shot update before starting autonomous
         print("[Auto] Starting Sequencer")
         self.topLevelCmdGroup.initialize()
 

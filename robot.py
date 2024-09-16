@@ -1,6 +1,7 @@
 import sys
 import wpilib
 from dashboard import Dashboard
+from drivetrain.controlStrategies.autoDrive import AutoDrive
 from drivetrain.controlStrategies.trajectory import Trajectory
 from drivetrain.drivetrainCommand import DrivetrainCommand
 from drivetrain.drivetrainControl import DrivetrainControl
@@ -31,8 +32,9 @@ class MyRobot(wpilib.TimedRobot):
         self.webserver = Webserver()
 
         self.driveTrain = DrivetrainControl()
+        self.autodrive = AutoDrive()
 
-        self.stt = SegmentTimeTracker()       
+        self.stt = SegmentTimeTracker()      
 
         self.dInt = DriverInterface()
 
@@ -85,7 +87,9 @@ class MyRobot(wpilib.TimedRobot):
     #########################################################
     ## Teleop-Specific init and update
     def teleopInit(self):
-        pass
+        # clear existing telemetry trajectory
+        self.driveTrain.poseEst.telemetry.setWPITrajectory(None)
+
 
     def teleopPeriodic(self):
 
@@ -96,9 +100,12 @@ class MyRobot(wpilib.TimedRobot):
         if self.dInt.getGyroResetCmd():
             self.driveTrain.resetGyro()
 
+        self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
+        self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
+
         # No trajectory in Teleop
         Trajectory().setCmd(None)
-        self.driveTrain.poseEst.telemetry.setTrajectory(None)
+
 
 
     #########################################################
