@@ -90,7 +90,10 @@ class GradientDescentCostMap:
         max_iter = int(math.sqrt(straightline_x ** 2 + straightline_y ** 2) / step_size * 20.0)
 
         path = []
-       
+
+        # First point is always part of the path
+        path.append(np.array([x, y]))
+
         for step in range(max_iter):
 
             # Constrain x/y to be on the field
@@ -128,12 +131,12 @@ class GradientDescentCostMap:
                 path.append(np.array([x_end, y_end]))
                 break
 
-            x, y = new_x, new_y
+            if step == max_iter - 1:
+                # If max iterations reached, return path without the final point
+                print("Max iterations reached. Stopping.")
+                break
 
-       
-        # If max iterations reached, return path without the final point
-        if step == max_iter - 1:
-            print("Max iterations reached. Stopping.")
+            x, y = new_x, new_y
 
         # Simplify the path
         return self._resample_path(path, 2.5)

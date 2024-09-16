@@ -73,6 +73,18 @@
           "selectable": false,
           "style": "Track"
         },
+        "desTrajWaypoints": {
+          "arrows": false,
+          "color": [
+            0.5709201693534851,
+            0.20304691791534424,
+            0.8284313678741455,
+            255.0
+          ],
+          "length": 0.20000000298023224,
+          "weight": 6.0,
+          "width": 0.20000000298023224
+        },
         "height": 8.210550308227539,
         "left": 150,
         "right": 2961,

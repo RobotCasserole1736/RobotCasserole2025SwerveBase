@@ -61,21 +61,26 @@ class DynamicPathPlanner():
             # We'll sample the path before and after the current timestanp
             # and use finite differences to derive a drivetrain velocity command
             curTime = Timer.getFPGATimestamp() - self.trajStartTime_s
-            prevTime = max(0.0, curTime - 0.01)
-            nextTime = curTime + 0.01
-            deltaTime = nextTime - prevTime
+            if(curTime < self.curTraj.totalTime()):
+                prevTime = max(0.0, curTime - 0.01)
+                nextTime = curTime + 0.01
+                deltaTime = nextTime - prevTime
 
-            prevSample = self.curTraj.sample(prevTime).pose
-            curSample = self.curTraj.sample(curTime).pose
-            nextSample = self.curTraj.sample(nextTime).pose
+                prevSample = self.curTraj.sample(prevTime).pose
+                curSample = self.curTraj.sample(curTime).pose
+                nextSample = self.curTraj.sample(nextTime).pose
 
-            xVel = (nextSample.translation().X() - prevSample.translation().X())/deltaTime
-            yVel = (nextSample.translation().Y() - prevSample.translation().Y())/deltaTime
-            rotVel = (nextSample.rotation() - prevSample.rotation()).radians()/deltaTime
+                xVel = (nextSample.translation().X() - prevSample.translation().X())/deltaTime
+                yVel = (nextSample.translation().Y() - prevSample.translation().Y())/deltaTime
+                rotVel = (nextSample.rotation() - prevSample.rotation()).radians()/deltaTime
 
-            return DrivetrainCommand(
-                xVel,yVel,rotVel,curSample
-            )
+                return DrivetrainCommand(
+                    xVel,yVel,rotVel,curSample
+                )
+            else:
+                return DrivetrainCommand(
+                    0,0,0,self.curGoal.endPose
+                )
 
         else:
             # No path, no motion

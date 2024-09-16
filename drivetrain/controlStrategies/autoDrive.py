@@ -45,7 +45,7 @@ class AutoDrive(metaclass=Singleton):
 
         # If being asked to auto-align, use the command from the dynamic path planner
         if(self._toPickup or self._toSpeaker):
-            cmdIn = self._dpp.get()
+            retCmd = self._dpp.get()
 
         self._toSpeakerPrev = self._toSpeaker
         self._toPickupPrev = self._toPickup
