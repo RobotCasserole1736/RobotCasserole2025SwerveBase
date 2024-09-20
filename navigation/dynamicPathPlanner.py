@@ -126,7 +126,7 @@ class DynamicPathPlanner():
             # Add obstacle to the map
             timeToLive = Timer.getFPGATimestamp() - obs.deadtime_s
             if(timeToLive > 0):
-                workingMap.add_obstacle(obs.pose,
+                workingMap.add_obstacle(obs.pose.translation(),
                                         self._obstacleCostHeuristic(timeToLive),
                                         obs.radius_m)
         
@@ -162,7 +162,7 @@ class DynamicPathPlanner():
 
 
         # TODO - initial velocity
-        self.curTraj = TrajectoryGenerator.generateTrajectory(startTrajPose, self.waypoints, endTrajPose, self.trajCfg)
+        self.curTraj = TrajectoryGenerator.generateTrajectory(startTrajPose, self.waypoints[1:-2], endTrajPose, self.trajCfg)
 
         
         self.trajStartTime_s = Timer.getFPGATimestamp()

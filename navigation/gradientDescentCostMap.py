@@ -218,7 +218,7 @@ def onclick(event):
     if event.button == 1:  # Left click
         # Create cosine-squared bump
         obstructionPose = Pose2d(event.xdata*GRID_SIZE_M, event.ydata*GRID_SIZE_M, Rotation2d.fromDegrees(0.0))
-        cost_map_copy.add_obstacle(obstructionPose, 200.0, 1.0)
+        cost_map_copy.add_obstacle(obstructionPose.translation(), 200.0, 1.0)
        
     elif event.button == 3: # Right Click
         # Reset and find a new path
