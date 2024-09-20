@@ -1,5 +1,5 @@
 
-GRID_SIZE_M = 0.5
+GRID_SIZE_M = 0.25
 FIELD_X_M = 16.54
 FIELD_Y_M = 8.21
 

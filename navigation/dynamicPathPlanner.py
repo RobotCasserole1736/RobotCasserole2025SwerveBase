@@ -82,6 +82,7 @@ class DynamicPathPlanner():
                 nextSampleTrans = self.curTraj.sample(nextTime).pose.translation()
                 
                 # Adjust the sample poses to have the correct holonomic rotation
+                # TODO we're just 
                 prevSample = Pose2d(prevSampleTrans, Rotation2d())
                 curSample = Pose2d(curSampleTrans, Rotation2d())
                 nextSample = Pose2d(nextSampleTrans, Rotation2d())

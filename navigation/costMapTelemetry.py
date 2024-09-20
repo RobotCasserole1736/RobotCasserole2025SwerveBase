@@ -1,10 +1,9 @@
 from cscore import CameraServer, VideoMode
 import numpy as np
 from navigation.navConstants import GRID_SIZE_X, GRID_SIZE_Y 
-import colorsys
 
 
-_PX_PER_GRID = 10
+_PX_PER_GRID = 20
 
 class CostMapTelemetry:
     def __init__(self, name):
