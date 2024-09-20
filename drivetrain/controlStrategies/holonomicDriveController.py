@@ -1,5 +1,6 @@
 import math
 from wpimath.controller import PIDController
+from wpimath.geometry import Pose2d
 from drivetrain.drivetrainCommand import DrivetrainCommand
 from drivetrain.drivetrainPhysical import (
     MAX_FWD_REV_SPEED_MPS,
@@ -71,18 +72,20 @@ class HolonomicDriveController:
             ChassisSpeeds: the Field-relative set of vx, vy, and vt commands for
             the robot to follow that will get it to the desired pose
         """
-
         # Feed-Forward - calculate how fast we should be going at this point in the trajectory
         xFF = trajCmd.velocityX
         yFF = trajCmd.velocityY
         tFF = trajCmd.angularVelocity
+        cmdPose = trajCmd.getPose()
+        return self.update2(xFF,yFF,tFF,cmdPose,curEstPose)
 
+    def update2(self, xFF, yFF, tFF, cmdPose:Pose2d, curEstPose:Pose2d):
         # Feed-Back - Apply additional correction if we're not quite yet at the spot on the field we
         #             want to be at.
-        xFB = self.xCtrl.calculate(curEstPose.X(), trajCmd.getPose().X())
-        yFB = self.yCtrl.calculate(curEstPose.Y(), trajCmd.getPose().Y())
+        xFB = self.xCtrl.calculate(curEstPose.X(), cmdPose.X())
+        yFB = self.yCtrl.calculate(curEstPose.Y(), cmdPose.Y())
         tFB = self.tCtrl.calculate(
-            curEstPose.rotation().radians(), trajCmd.getPose().rotation().radians()
+            curEstPose.rotation().radians(), cmdPose.rotation().radians()
         )
 
         log("Drivetrain HDC xFF", xFF, "mps")
@@ -97,6 +100,6 @@ class HolonomicDriveController:
         retVal.velX = limit(xFF + xFB, MAX_FWD_REV_SPEED_MPS)
         retVal.velY = limit(yFF + yFB, MAX_FWD_REV_SPEED_MPS)
         retVal.velT = limit(tFF + tFB, MAX_ROTATE_SPEED_RAD_PER_SEC)
-        retVal.desPose = trajCmd.getPose()
+        retVal.desPose = cmdPose
 
         return retVal

@@ -9,6 +9,7 @@ from time import sleep
 
 from navigation.costMapTelemetry import CostMapTelemetry
 from navigation.gradientDescentCostMap import GradientDescentCostMap
+from utils.calibration import Calibration
 
 class DynamicPathPlannerGoal():
     def __init__(self, endPose:Pose2d):
@@ -34,9 +35,12 @@ class ObstacleObservation():
 class DynamicPathPlanner():
 
     def __init__(self):
+        self.pathSpeedFactor = Calibration("Dynamic Path Planner Speed Scaling", 0.75, "frac", minVal=0.0, maxVal=1.0)
         self.obstacles:list[ObstacleObservation] = []
         self.curGoal = GOAL_PICKUP
         self.replanNeeded = False
+        self.pathReady = False
+        self.startPose:Pose2d|None = None
         self.curTraj:Trajectory|None = None
         self.waypoints:list[Translation2d]|None = None
         self.trajStartTime_s:float|None = None
@@ -51,10 +55,16 @@ class DynamicPathPlanner():
         self.curGoal = goal
         self.curPose = curPose
         self.replanNeeded = True
+        self.pathReady = False
+
+    def setNoGoal(self):
+        self.replanNeeded = False
+        self.pathReady = False
 
     def addObstacleObservation(self, obs:ObstacleObservation):
         self.obstacles.append(obs)
         self.replanNeeded = True
+        self.pathReady = False
 
     @staticmethod
     def _obstacleCostHeuristic(timeToLive:float)->float:
@@ -62,12 +72,20 @@ class DynamicPathPlanner():
         return timeToLive * 2.0
     
     def _getHolonomicRotation(self, time_s:float)->Rotation2d:
-        if(self.curTraj is not None and self.trajStartTime_s is not None):
-            initialPose = self.trajCfg
+        if(self.curTraj is not None and self.trajStartTime_s is not None and self.startPose is not None):
+            startRot = self.startPose.rotation()
+            endRot = self.curGoal.endPose.rotation()
+            deltaRot = endRot - startRot
+            frac = (time_s)/self.curTraj.totalTime()
+            if(frac > 1.0): frac = 1.0
+            if(frac < 0.0): frac = 0.0
+            return startRot + deltaRot*frac
+        else:
+            return Rotation2d() # derp
 
 
     def get(self) -> DrivetrainCommand:
-        if(self.curTraj is not None and self.trajStartTime_s is not None):
+        if(self.curTraj is not None and self.trajStartTime_s is not None and self.pathReady):
             # Trajectory doesn't work great for holonomic drivetrains.
             # We'll sample the path before and after the current timestanp
             # and use finite differences to derive a drivetrain velocity command
@@ -82,10 +100,9 @@ class DynamicPathPlanner():
                 nextSampleTrans = self.curTraj.sample(nextTime).pose.translation()
                 
                 # Adjust the sample poses to have the correct holonomic rotation
-                # TODO we're just 
-                prevSample = Pose2d(prevSampleTrans, Rotation2d())
-                curSample = Pose2d(curSampleTrans, Rotation2d())
-                nextSample = Pose2d(nextSampleTrans, Rotation2d())
+                prevSample = Pose2d(prevSampleTrans, self._getHolonomicRotation(prevTime))
+                curSample = Pose2d(curSampleTrans,  self._getHolonomicRotation(curTime))
+                nextSample = Pose2d(nextSampleTrans,  self._getHolonomicRotation(nextTime))
 
                 xVel = (nextSample.translation().X() - prevSample.translation().X())/deltaTime
                 yVel = (nextSample.translation().Y() - prevSample.translation().Y())/deltaTime
@@ -110,11 +127,19 @@ class DynamicPathPlanner():
             if(self.replanNeeded):
                 workingGrid = self._do_replan(self.curPose)
                 self.replanNeeded = False
+                self.pathReady = True
             self.telem.update(workingGrid)
 
     def _do_replan(self, curPose:Pose2d) -> np.ndarray:
 
+        
+        self.trajCfg = TrajectoryConfig(MAX_FWD_REV_SPEED_MPS * self.pathSpeedFactor.get(), 
+                                        MAX_TRANSLATE_ACCEL_MPS2 * self.pathSpeedFactor.get())
+
+
         workingMap = self.curGoal.baseMap.get_copy()
+
+        self.startPose = curPose
 
         # Handle obstacle updates
         for obs in self.obstacles:

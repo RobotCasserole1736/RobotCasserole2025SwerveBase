@@ -86,9 +86,6 @@ class DrivetrainControl(metaclass=Singleton):
         self.curCmd = Trajectory().update(self.curCmd, curEstPose)
         self.curCmd = AutoDrive().update(self.curCmd, curEstPose)
 
-        if DriveForwardSlowCommand().isRunning():
-           self.curCmd = DriveForwardSlowCommand().execute()
-
         # Transform the current command to be robot relative
         tmp = ChassisSpeeds.fromFieldRelativeSpeeds(
             self.curCmd.velX, self.curCmd.velY, self.curCmd.velT, curEstPose.rotation()

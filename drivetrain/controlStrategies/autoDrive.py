@@ -1,5 +1,6 @@
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.trajectory import Trajectory
+from drivetrain.controlStrategies.holonomicDriveController import HolonomicDriveController
 from drivetrain.drivetrainCommand import DrivetrainCommand
 from utils.singleton import Singleton
 from navigation.dynamicPathPlanner import GOAL_PICKUP, GOAL_SPEAKER, DynamicPathPlanner
@@ -11,7 +12,7 @@ class AutoDrive(metaclass=Singleton):
         self._toSpeakerPrev = False
         self._toPickupPrev = False
         self._dpp = DynamicPathPlanner()
-
+        self._trajCtrl = HolonomicDriveController()
 
     def setRequest(self, toSpeaker, toPickup) -> None:
         self._toSpeaker = toSpeaker
@@ -42,10 +43,15 @@ class AutoDrive(metaclass=Singleton):
         elif(self._toSpeaker and not self._toSpeakerPrev):
             # Just started going to the speaker, change the goal
             self._dpp.changeGoal(GOAL_SPEAKER, curPose)
+        elif(not self._toSpeaker and not self._toPickup):
+            self._dpp.setNoGoal()
 
         # If being asked to auto-align, use the command from the dynamic path planner
         if(self._toPickup or self._toSpeaker):
-            retCmd = self._dpp.get()
+            olCmd = self._dpp.get()
+            if( olCmd.desPose is not None):
+                retCmd = self._trajCtrl.update2(olCmd.velX, olCmd.velY, olCmd.velT, olCmd.desPose, curPose)
+
 
         self._toSpeakerPrev = self._toSpeaker
         self._toPickupPrev = self._toPickup
