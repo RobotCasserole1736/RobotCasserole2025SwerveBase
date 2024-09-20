@@ -40,9 +40,9 @@ class GradientDescentCostMap:
         base_grid_copy = np.copy(self.base_grid)
         return GradientDescentCostMap(self.end_pose, base_grid_copy)
 
-    def add_obstacle(self, pose: Pose2d, cost: float, radius_m: float):
-        y_peak = pose.Y()/GRID_SIZE_M
-        x_peak = pose.X()/GRID_SIZE_M
+    def add_obstacle(self, translate: Translation2d, cost: float, radius_m: float):
+        y_peak = translate.Y()/GRID_SIZE_M
+        x_peak = translate.X()/GRID_SIZE_M
         peak_radius = radius_m/GRID_SIZE_M
 
         y_min = max(0,round(y_peak - peak_radius))

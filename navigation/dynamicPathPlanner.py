@@ -14,6 +14,12 @@ class DynamicPathPlannerGoal():
     def __init__(self, endPose:Pose2d):
         self.endPose = endPose
         self.baseMap = GradientDescentCostMap(self.endPose)
+        self.baseMap.add_obstacle(Translation2d(5.56, 2.74),100,0.75)
+        self.baseMap.add_obstacle(Translation2d(3.45, 4.07),100,0.75)
+        self.baseMap.add_obstacle(Translation2d(5.56, 5.35),100,0.75)
+        self.baseMap.add_obstacle(Translation2d(11.0, 2.74),100,0.75)
+        self.baseMap.add_obstacle(Translation2d(13.27, 4.07),100,0.75)
+        self.baseMap.add_obstacle(Translation2d(11.0, 5.35),100,0.75)
 
 GOAL_PICKUP = DynamicPathPlannerGoal(Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0)))
 GOAL_SPEAKER = DynamicPathPlannerGoal(Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(0.0)))
@@ -54,7 +60,12 @@ class DynamicPathPlanner():
     def _obstacleCostHeuristic(timeToLive:float)->float:
         """ return the "height" used in pathplanning based on the alive time"""
         return timeToLive * 2.0
-   
+    
+    def _getHolonomicRotation(self, time_s:float)->Rotation2d:
+        if(self.curTraj is not None and self.trajStartTime_s is not None):
+            initialPose = self.trajCfg
+
+
     def get(self) -> DrivetrainCommand:
         if(self.curTraj is not None and self.trajStartTime_s is not None):
             # Trajectory doesn't work great for holonomic drivetrains.
@@ -66,9 +77,14 @@ class DynamicPathPlanner():
                 nextTime = curTime + 0.01
                 deltaTime = nextTime - prevTime
 
-                prevSample = self.curTraj.sample(prevTime).pose
-                curSample = self.curTraj.sample(curTime).pose
-                nextSample = self.curTraj.sample(nextTime).pose
+                prevSampleTrans = self.curTraj.sample(prevTime).pose.translation()
+                curSampleTrans = self.curTraj.sample(curTime).pose.translation()
+                nextSampleTrans = self.curTraj.sample(nextTime).pose.translation()
+                
+                # Adjust the sample poses to have the correct holonomic rotation
+                prevSample = Pose2d(prevSampleTrans, Rotation2d())
+                curSample = Pose2d(curSampleTrans, Rotation2d())
+                nextSample = Pose2d(nextSampleTrans, Rotation2d())
 
                 xVel = (nextSample.translation().X() - prevSample.translation().X())/deltaTime
                 yVel = (nextSample.translation().Y() - prevSample.translation().Y())/deltaTime
@@ -116,8 +132,44 @@ class DynamicPathPlanner():
         # Calc a new path
         self.waypoints = workingMap.calculate_path(curPose)
 
-        # TODO - initial velocity
-        self.curTraj = TrajectoryGenerator.generateTrajectory(curPose, self.waypoints, self.curGoal.endPose, self.trajCfg)
-        self.trajStartTime_s = Timer.getFPGATimestamp()
+        # Get start/end poses for feeding to the trajectory generation
+        # These should be in the same translations as start/end points
+        # But with rotations that reflect the intended velocity vector of the robot
+        # at the start and end. 
+        # This is needed because the trajectory generator is designed around tank drives
+        # but since we have a swerve drive, robot heading and velocity vector heading are decoupled
+        if(len(self.waypoints) > 2):
+            startTrajPose = Pose2d(
+                translation=curPose.translation(),
+                rotation=self._getDirection(self.waypoints[0], self.waypoints[1])
+            )
+            endTrajPose = Pose2d(
+                translation=self.curGoal.endPose.translation(),
+                rotation=self._getDirection( self.waypoints[-2],self.waypoints[-1])
+            )
+        else:
+            startTrajPose = Pose2d(
+                translation=curPose.translation(),
+                rotation=self._getDirection(curPose.translation(), 
+                                            self.curGoal.endPose.translation())
+            )
+            endTrajPose = Pose2d(
+                translation=self.curGoal.endPose.translation(),
+                rotation=self._getDirection(curPose.translation(),
+                                            self.curGoal.endPose.translation())
+            )
 
+
+        # TODO - initial velocity
+        self.curTraj = TrajectoryGenerator.generateTrajectory(startTrajPose, self.waypoints, endTrajPose, self.trajCfg)
+
+        
+        self.trajStartTime_s = Timer.getFPGATimestamp()
         return workingMap.base_grid
+    
+    @staticmethod
+    def _getDirection(from_tans:Translation2d, to_trans:Translation2d) -> Rotation2d:
+        deltaX = (to_trans.X() - from_tans.X())
+        deltaY = (to_trans.Y() - from_tans.Y())
+        return Rotation2d(x=deltaX, y=deltaY)
+
