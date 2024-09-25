@@ -3,57 +3,67 @@ from wpimath.trajectory import Trajectory
 from drivetrain.controlStrategies.holonomicDriveController import HolonomicDriveController
 from drivetrain.drivetrainCommand import DrivetrainCommand
 from utils.singleton import Singleton
-from navigation.dynamicPathPlanner import GOAL_PICKUP, GOAL_SPEAKER, DynamicPathPlanner
+from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
+from drivetrain.drivetrainPhysical import MAX_DT_LINEAR_SPEED
+
+
+GOAL_PICKUP = Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0))
+GOAL_SPEAKER = Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(0.0))
+SPEED_SCALAR = 0.75
+
+TELEM_STEP_M = 0.25
 
 class AutoDrive(metaclass=Singleton):
     def __init__(self):
         self._toSpeaker = False
         self._toPickup = False
-        self._toSpeakerPrev = False
-        self._toPickupPrev = False
-        self._dpp = DynamicPathPlanner()
+        self._rfp = RepulsorFieldPlanner()
         self._trajCtrl = HolonomicDriveController()
+        self._curPose = Pose2d()
 
     def setRequest(self, toSpeaker, toPickup) -> None:
         self._toSpeaker = toSpeaker
         self._toPickup = toPickup
 
     def getTrajectory(self) -> Trajectory|None:
-        return self._dpp.curTraj
+        return None # TODO
     
     def getWaypoints(self) -> list[Pose2d]:
         retArr = []
 
-        if(self._dpp.waypoints is not None):
-            retArr.append(self._dpp.curPose)
-            for trans in self._dpp.waypoints:
-                retArr.append(Pose2d(trans, Rotation2d.fromDegrees(0)))
-            retArr.append(self._dpp.curGoal.endPose)
+        if(self._rfp.goal is not None):
+            cp = self._curPose
+            for _ in range(0,15):
+                retArr.append(cp)
+                tmp = self._rfp.getCmd(cp, TELEM_STEP_M)
+                if(tmp.desPose is not None):
+                    cp = tmp.desPose
+                else:
+                    break
+
+            retArr.append(self._rfp.goal)
 
         return retArr
 
     def update(self, cmdIn: DrivetrainCommand, curPose: Pose2d) -> DrivetrainCommand:
 
         retCmd = cmdIn # default - no auto driving
+        self._curPose = curPose
+
+        self._rfp.decay_observations()
 
         # Handle command changes
-        if(self._toPickup and not self._toPickupPrev):
-            # Just started going to the pickup, change the goal
-            self._dpp.changeGoal(GOAL_PICKUP, curPose)
-        elif(self._toSpeaker and not self._toSpeakerPrev):
-            # Just started going to the speaker, change the goal
-            self._dpp.changeGoal(GOAL_SPEAKER, curPose)
+        if(self._toPickup):
+            self._rfp.setGoal(GOAL_PICKUP)
+        elif(self._toSpeaker):
+            self._rfp.setGoal(GOAL_SPEAKER)
         elif(not self._toSpeaker and not self._toPickup):
-            self._dpp.setNoGoal()
+            self._rfp.setGoal(None)
 
         # If being asked to auto-align, use the command from the dynamic path planner
         if(self._toPickup or self._toSpeaker):
-            olCmd = self._dpp.get()
+            olCmd = self._rfp.getCmd(curPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
             if( olCmd.desPose is not None):
                 retCmd = self._trajCtrl.update2(olCmd.velX, olCmd.velY, olCmd.velT, olCmd.desPose, curPose)
-
-
-        self._toSpeakerPrev = self._toSpeaker
-        self._toPickupPrev = self._toPickup
 
         return retCmd
