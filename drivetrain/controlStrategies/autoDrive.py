@@ -9,11 +9,8 @@ from drivetrain.drivetrainPhysical import MAX_DT_LINEAR_SPEED
 
 
 GOAL_PICKUP = Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0))
-GOAL_SPEAKER = Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(0.0))
+GOAL_SPEAKER = Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(180.0))
 SPEED_SCALAR = 0.75
-
-TELEM_LOOKAHEAD_DIST_M = 3.0
-TELEM_LOOKAHEAD_STEPS = 7
 
 class AutoDrive(metaclass=Singleton):
     def __init__(self):
@@ -32,21 +29,8 @@ class AutoDrive(metaclass=Singleton):
         return None # TODO
     
     def updateTelemetry(self) -> None:        
-        self._telemTraj = []
-        stepsize = TELEM_LOOKAHEAD_DIST_M/TELEM_LOOKAHEAD_STEPS
-        if(self._rfp.goal is not None):
-            cp = self._curPose
-            for _ in range(0,TELEM_LOOKAHEAD_STEPS):
-                self._telemTraj.append(cp)
-                tmp = self._rfp.getCmd(cp, stepsize)
-                if(tmp.desPose is not None):
-                    cp = tmp.desPose
-                else:
-                    break
+        self._telemTraj = self._rfp.updateTelemetry(self._curPose)
 
-            self._telemTraj.append(self._rfp.goal)
-
-    
     def getWaypoints(self) -> list[Pose2d]:
         return self._telemTraj
     
@@ -71,9 +55,11 @@ class AutoDrive(metaclass=Singleton):
         # If being asked to auto-align, use the command from the dynamic path planner
         if(self._toPickup or self._toSpeaker):
             olCmd = self._rfp.getCmd(curPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
+            log("AutoDrive FwdRev Cmd", olCmd.velX, "mps")
+            log("AutoDrive Strafe Cmd", olCmd.velY, "mps")
+            log("AutoDrive Rot Cmd", olCmd.velT, "radpers")
             if( olCmd.desPose is not None):
                 retCmd = self._trajCtrl.update2(olCmd.velX, olCmd.velY, olCmd.velT, olCmd.desPose, curPose)
 
-        log("AutoDrive_active", self._rfp.goal is not None)
 
         return retCmd

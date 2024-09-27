@@ -62,6 +62,11 @@ class MyRobot(wpilib.TimedRobot):
 
         self.driveTrain.update()
 
+        self.autodrive.updateTelemetry()
+        self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
+        self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
+        self.driveTrain.poseEst.telemetry.setCurObstacles(self.autodrive.getObstacles())
+
         self.stt.end()
 
     #########################################################
@@ -108,10 +113,6 @@ class MyRobot(wpilib.TimedRobot):
             self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(-3.0, 0.0, Rotation2d())))
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
-        self.autodrive.updateTelemetry()
-        self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
-        self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
-        self.driveTrain.poseEst.telemetry.setCurObstacles(self.autodrive.getObstacles())
 
         # No trajectory in Teleop
         Trajectory().setCmd(None)
