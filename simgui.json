@@ -63,6 +63,8 @@
             0.02998846210539341,
             255.0
           ],
+          "image": "obstacle.png",
+          "length": 0.6859999895095825,
           "selectable": false,
           "style": "Box/Image",
           "weight": 16.0

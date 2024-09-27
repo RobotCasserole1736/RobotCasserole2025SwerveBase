@@ -136,6 +136,8 @@ class RepulsorFieldPlanner:
         retArr = []
         for obstacle in self.fixedObstacles:
             retArr.extend(obstacle.getTelemTrans())
+        for obstacle in self.transientObstcales:
+            retArr.extend(obstacle.getTelemTrans())
 
         return retArr
 

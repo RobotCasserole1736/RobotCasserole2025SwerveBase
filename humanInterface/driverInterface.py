@@ -63,7 +63,7 @@ class DriverInterface:
 
             self.navToSpeaker = self.ctrl.getBButton()
             self.navToPickup = self.ctrl.getXButton()
-            self.createObstacle = self.ctrl.getRightBumper()
+            self.createObstacle = self.ctrl.getYButtonPressed()
 
             self.connectedFault.setNoFault()
 
