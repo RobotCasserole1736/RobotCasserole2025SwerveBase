@@ -123,7 +123,9 @@ class RepulsorFieldPlanner:
         self.goal = goal
 
     def add_obstcale_observaton(self, pose:Pose2d):
-        obstacle = PointObstacle(location=Translation2d(pose.X() + 3,pose.Y()),strength=.5)
+        obstacle = PointObstacle(location=Translation2d(pose.X() + 3,pose.Y()-0.5),strength=.7)
+        self.transientObstcales.append(obstacle)
+        obstacle = PointObstacle(location=Translation2d(pose.X() - 3,pose.Y()+0.5),strength=.7)
         self.transientObstcales.append(obstacle)
     
     def getGoalForce(self, curLocation:Translation2d) -> Force:
