@@ -20,6 +20,7 @@ class AutoDrive(metaclass=Singleton):
         self._rfp = RepulsorFieldPlanner()
         self._trajCtrl = HolonomicDriveController()
         self._curPose = Pose2d()
+        self._telemTraj = []
 
     def setRequest(self, toSpeaker, toPickup) -> None:
         self._toSpeaker = toSpeaker
@@ -28,22 +29,25 @@ class AutoDrive(metaclass=Singleton):
     def getTrajectory(self) -> Trajectory|None:
         return None # TODO
     
-    def getWaypoints(self) -> list[Pose2d]:
-        retArr = []
-
+    def updateTelemetry(self) -> None:
+        self._rfp.updateTelemetry()
+        
+        self._telemTraj = []
         if(self._rfp.goal is not None):
             cp = self._curPose
             for _ in range(0,15):
-                retArr.append(cp)
+                self._telemTraj.append(cp)
                 tmp = self._rfp.getCmd(cp, TELEM_STEP_M)
                 if(tmp.desPose is not None):
                     cp = tmp.desPose
                 else:
                     break
 
-            retArr.append(self._rfp.goal)
+            self._telemTraj.append(self._rfp.goal)
 
-        return retArr
+    
+    def getWaypoints(self) -> list[Pose2d]:
+        return self._telemTraj
 
     def update(self, cmdIn: DrivetrainCommand, curPose: Pose2d) -> DrivetrainCommand:
 

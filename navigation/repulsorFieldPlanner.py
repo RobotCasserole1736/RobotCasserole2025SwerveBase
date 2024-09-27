@@ -4,6 +4,7 @@ from wpimath.geometry import Pose2d, Translation2d
 from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
+from navigation.navMapTelemetry import CostMapTelemetry
 
 @dataclass
 class Force:
@@ -97,6 +98,7 @@ class RepulsorFieldPlanner:
        self.fixedObstacles.extend(FIELD_OBSTACLES)
        self.fixedObstacles.extend(WALLS)
        self.transientObstcales:list[Obstacle] = []
+       self.telem = CostMapTelemetry(name="PotentialField")
 
     def setGoal(self, goal:Pose2d|None):
         self.goal = goal
@@ -107,6 +109,8 @@ class RepulsorFieldPlanner:
     def getGoalForce(self, curLocation:Translation2d) -> Force:
         if(self.goal is not None):
             displacement = self.goal.translation() - curLocation
+            if(displacement == 0.0):
+                return Force() # literally at goal, no force
             direction = displacement/displacement.norm()
             mag = GOAL_STRENGTH * (1 + 1.0/(0.0001 + displacement.norm()))
             return Force(direction.x*mag, direction.y*mag)
@@ -122,6 +126,24 @@ class RepulsorFieldPlanner:
         # Only keep obstacles with positive strength
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
 
+    def updateTelemetry(self):
+        self.telem.update(self)
+
+    def getForceAtTrans(self, trans:Translation2d)->Force:
+        goalForce = self.getGoalForce(trans)
+        
+        repusliveForces = []
+        for obstacle in self.fixedObstacles:
+            repusliveForces.append(obstacle.getForceAtPosition(trans))
+        for obstacle in self.transientObstcales:
+            repusliveForces.append(obstacle.getForceAtPosition(trans))
+
+        # Calcualte sum of forces
+        netForce = goalForce
+        for force in repusliveForces:
+            netForce += force
+
+        return netForce
    
     def getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
         retVal = DrivetrainCommand() # Default, no command
@@ -136,18 +158,7 @@ class RepulsorFieldPlanner:
                 retVal.velY = 0.0
                 retVal.desPose = self.goal
             else:
-                goalForce = self.getGoalForce(curTrans)
-                
-                repusliveForces = []
-                for obstacle in self.fixedObstacles:
-                    repusliveForces.append(obstacle.getForceAtPosition(curTrans))
-                for obstacle in self.transientObstcales:
-                    repusliveForces.append(obstacle.getForceAtPosition(curTrans))
-
-                # Calcualte sum of forces
-                netForce = goalForce
-                for force in repusliveForces:
-                    netForce += force
+                netForce = self.getForceAtTrans(curPose.translation())
 
                 # Take a step in the direction of the force
                 step = Translation2d(stepSize_m*netForce.unitX(), stepSize_m*netForce.unitY()) 

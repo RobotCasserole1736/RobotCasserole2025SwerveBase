@@ -101,6 +101,7 @@ class MyRobot(wpilib.TimedRobot):
             self.driveTrain.resetGyro()
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
+        self.autodrive.updateTelemetry()
         self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
         self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
 
