@@ -108,9 +108,10 @@ class RepulsorFieldPlanner:
     def setGoal(self, goal:Pose2d|None):
         self.goal = goal
 
-    def add_obstcale_observaton(self, obstacle: Obstacle):
+    def add_obstcale_observaton(self, pose:Pose2d):
+        obstacle = PointObstacle(location=Translation2d(pose.X() + 3,pose.Y()),strength=.5)
         self.transientObstcales.append(obstacle)
-
+    
     def getGoalForce(self, curLocation:Translation2d) -> Force:
         if(self.goal is not None):
             displacement = self.goal.translation() - curLocation
@@ -126,7 +127,7 @@ class RepulsorFieldPlanner:
     def decay_observations(self):
         # Linear decay of each transient obstacle observation
         for obs in self.transientObstcales:
-            obs.strength -= 0.1
+            obs.strength -= 0.01
 
         # Only keep obstacles with positive strength
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
@@ -153,7 +154,7 @@ class RepulsorFieldPlanner:
             netForce += force
 
         return netForce
-   
+       
     def getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
         retVal = DrivetrainCommand() # Default, no command
         if(self.goal is not None):
