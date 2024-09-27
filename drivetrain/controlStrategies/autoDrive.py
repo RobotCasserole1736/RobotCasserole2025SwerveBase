@@ -1,7 +1,8 @@
-from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.trajectory import Trajectory
 from drivetrain.controlStrategies.holonomicDriveController import HolonomicDriveController
 from drivetrain.drivetrainCommand import DrivetrainCommand
+from utils.signalLogging import log
 from utils.singleton import Singleton
 from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
 from drivetrain.drivetrainPhysical import MAX_DT_LINEAR_SPEED
@@ -29,9 +30,7 @@ class AutoDrive(metaclass=Singleton):
     def getTrajectory(self) -> Trajectory|None:
         return None # TODO
     
-    def updateTelemetry(self) -> None:
-        self._rfp.updateTelemetry()
-        
+    def updateTelemetry(self) -> None:        
         self._telemTraj = []
         if(self._rfp.goal is not None):
             cp = self._curPose
@@ -48,6 +47,9 @@ class AutoDrive(metaclass=Singleton):
     
     def getWaypoints(self) -> list[Pose2d]:
         return self._telemTraj
+    
+    def getObstacles(self) -> list[Translation2d]:
+        return [x.translation() for x in self._rfp.getObstaclePoseList()]
 
     def update(self, cmdIn: DrivetrainCommand, curPose: Pose2d) -> DrivetrainCommand:
 
@@ -69,5 +71,7 @@ class AutoDrive(metaclass=Singleton):
             olCmd = self._rfp.getCmd(curPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
             if( olCmd.desPose is not None):
                 retCmd = self._trajCtrl.update2(olCmd.velX, olCmd.velY, olCmd.velT, olCmd.desPose, curPose)
+
+        log("AutoDrive_active", self._rfp.goal is not None)
 
         return retCmd

@@ -4,7 +4,6 @@ from wpimath.geometry import Pose2d, Translation2d
 from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
-from navigation.navMapTelemetry import CostMapTelemetry
 
 @dataclass
 class Force:
@@ -32,6 +31,8 @@ class Obstacle:
         return forceMag
     def getDist(self, position:Translation2d)->float:
         return float('inf')
+    def getTelemTrans(self)->list[Translation2d]:
+        return []
     
 class PointObstacle(Obstacle):
     def __init__(self, location:Translation2d, strength:float=1.0, forceIsPositive:bool=True):
@@ -49,6 +50,8 @@ class PointObstacle(Obstacle):
         return Force(-1.0*unitX*forceMag, -1.0*unitY*forceMag)
     def getDist(self, position:Translation2d)->float:
         return (position - self.location).norm()
+    def getTelemTrans(self) -> list[Translation2d]:
+        return [self.location]
 
 class HorizontalObstacle(Obstacle):
     def __init__(self, y:float, strength:float=1.0, forceIsPositive:bool=True):
@@ -61,6 +64,9 @@ class HorizontalObstacle(Obstacle):
 
     def getDist(self, position: Translation2d) -> float:
         return abs(position.y - self.y)
+    
+    def getTelemTrans(self) -> list[Translation2d]:
+        return []
         
 class VerticalObstacle(Obstacle):
     def __init__(self, x:float, strength:float=1.0, forceIsPositive:bool=True):
@@ -98,7 +104,6 @@ class RepulsorFieldPlanner:
        self.fixedObstacles.extend(FIELD_OBSTACLES)
        self.fixedObstacles.extend(WALLS)
        self.transientObstcales:list[Obstacle] = []
-       self.telem = CostMapTelemetry(name="PotentialField")
 
     def setGoal(self, goal:Pose2d|None):
         self.goal = goal
@@ -126,8 +131,12 @@ class RepulsorFieldPlanner:
         # Only keep obstacles with positive strength
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
 
-    def updateTelemetry(self):
-        self.telem.update(self)
+    def getObstaclePoseList(self) -> list[Pose2d]:
+        retArr = []
+        for obstacle in self.fixedObstacles:
+            retArr.extend(obstacle.getTelemTrans())
+
+        return retArr
 
     def getForceAtTrans(self, trans:Translation2d)->Force:
         goalForce = self.getGoalForce(trans)
