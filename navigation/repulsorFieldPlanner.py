@@ -131,7 +131,7 @@ class RepulsorFieldPlanner:
         # Only keep obstacles with positive strength
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
 
-    def getObstaclePoseList(self) -> list[Pose2d]:
+    def getObstacleTransList(self) -> list[Translation2d]:
         retArr = []
         for obstacle in self.fixedObstacles:
             retArr.extend(obstacle.getTelemTrans())

@@ -49,7 +49,7 @@ class AutoDrive(metaclass=Singleton):
         return self._telemTraj
     
     def getObstacles(self) -> list[Translation2d]:
-        return [x.translation() for x in self._rfp.getObstaclePoseList()]
+        return self._rfp.getObstacleTransList()
 
     def update(self, cmdIn: DrivetrainCommand, curPose: Pose2d) -> DrivetrainCommand:
 

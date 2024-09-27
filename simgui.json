@@ -55,6 +55,18 @@
           "style": "Line (Closed)"
         },
         "bottom": 1476,
+        "curObstacles": {
+          "arrows": false,
+          "color": [
+            0.5098038911819458,
+            0.26989617943763733,
+            0.02998846210539341,
+            255.0
+          ],
+          "selectable": false,
+          "style": "Box/Image",
+          "weight": 16.0
+        },
         "desTraj": {
           "arrowColor": [
             187.2151641845703,

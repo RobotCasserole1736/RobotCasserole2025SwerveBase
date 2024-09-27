@@ -3,7 +3,7 @@ import math
 import wpilib
 from wpimath.units import metersToFeet
 from wpimath.trajectory import Trajectory
-from wpimath.geometry import Pose2d, Pose3d, Transform2d
+from wpimath.geometry import Pose2d, Pose3d, Transform2d, Rotation2d, Translation2d
 from ntcore import NetworkTableInstance
 
 from utils.signalLogging import log
@@ -23,6 +23,8 @@ class DrivetrainPoseTelemetry:
         wpilib.SmartDashboard.putData("DT Pose 2D", self.field)
         self.curTraj = Trajectory()
         self.curTrajWaypoints = []
+        self.obstacles = []
+
         self.desPose = Pose2d()
 
         self.leftCamPosePublisher = (
@@ -42,13 +44,16 @@ class DrivetrainPoseTelemetry:
     def setDesiredPose(self, desPose):
         self.desPose = desPose
 
-    def setCurTrajWaypoints(self, waypoints):
+    def setCurTrajWaypoints(self, waypoints:list[Pose2d]):
         self.curTrajWaypoints = waypoints
 
     def addVisionObservations(self, observations:list[CameraPoseObservation]):
         if(len(observations) > 0):
             for obs in observations:
                 self.visionPoses.append(obs.estFieldPose)
+
+    def setCurObstacles(self, obstacles:list[Translation2d]):
+        self.obstacles = obstacles
 
     def clearVisionObservations(self):
         self.visionPoses = []
@@ -67,6 +72,7 @@ class DrivetrainPoseTelemetry:
         self.field.getObject("desPose").setPose(self.desPose)
         self.field.getObject("desTraj").setTrajectory(self.curTraj)
         self.field.getObject("desTrajWaypoints").setPoses(self.curTrajWaypoints)
+        self.field.getObject("curObstacles").setPoses([Pose2d(x, Rotation2d()) for x in self.obstacles])
 
         self.field.getObject("visionObservations").setPoses(self.visionPoses)
         self.visionPoses = []

@@ -104,7 +104,7 @@ class MyRobot(wpilib.TimedRobot):
         self.autodrive.updateTelemetry()
         self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
         self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
-        self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
+        self.driveTrain.poseEst.telemetry.setCurObstacles(self.autodrive.getObstacles())
 
         # No trajectory in Teleop
         Trajectory().setCmd(None)
