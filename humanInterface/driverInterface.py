@@ -25,6 +25,7 @@ class DriverInterface:
         self.velTSlewRateLimiter = SlewRateLimiter(rateLimit=MAX_ROTATE_ACCEL_RAD_PER_SEC_2)
         self.navToSpeaker = False
         self.navToPickup = False
+        self.createObstacle = False
 
     def update(self):
         # value of contoller buttons
@@ -62,6 +63,7 @@ class DriverInterface:
 
             self.navToSpeaker = self.ctrl.getBButton()
             self.navToPickup = self.ctrl.getXButton()
+            self.createObstacle = self.ctrl.getRightBumper()
 
             self.connectedFault.setNoFault()
 
@@ -74,6 +76,7 @@ class DriverInterface:
             self.navToSpeaker = False
             self.navToPickup = False
             self.connectedFault.setFaulted()
+            self.createObstacle = False
 
 
         log("DI FwdRev Cmd", self.velXCmd, "mps")
@@ -99,3 +102,6 @@ class DriverInterface:
 
     def getGyroResetCmd(self):
         return self.gyroResetCmd
+
+    def getCreateObstacle(self):
+        return self.createObstacle
