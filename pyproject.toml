@@ -31,5 +31,4 @@ requires = [
     "photonlibpy==2024.2.4",
     "debugpy==1.6.7",
     "numpy==1.25.2",
-    "matplotlib==3.8.1"
 ]
