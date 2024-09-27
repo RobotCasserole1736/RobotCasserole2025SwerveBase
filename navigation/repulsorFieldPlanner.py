@@ -5,6 +5,10 @@ from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
 
+def _logistic_func(x, L, k, x0):
+    """Logistic function."""
+    return L / (1 + math.exp(-k * (x - x0)))
+
 @dataclass
 class Force:
     x:float=0
@@ -22,10 +26,15 @@ class Obstacle:
     def __init__(self, strength:float=1.0, forceIsPositive:bool=True):
         self.strength = strength
         self.forceIsPositive = forceIsPositive
+        self.radius = 0.25
+
     def getForceAtPosition(self, position:Translation2d)->Force:
         return Force()
+    
     def _distToForceMag(self, dist:float)->float:
-        forceMag = self.strength / (0.00001 + abs(dist**3))
+        dist = abs(dist)
+        #Sigmoid shape
+        forceMag = _logistic_func(-1.0 * dist, self.strength, 4.0, -self.radius)
         if(not self.forceIsPositive):
             forceMag *= -1.0
         return forceMag
@@ -39,6 +48,8 @@ class PointObstacle(Obstacle):
         self.strength = strength
         self.forceIsPositive = forceIsPositive
         self.location = location
+        self.radius = .4
+
 
     def getForceAtPosition(self, position: Translation2d) -> Force:
         deltaX =  self.location.x - position.x
@@ -58,6 +69,7 @@ class HorizontalObstacle(Obstacle):
         self.strength = strength
         self.forceIsPositive = forceIsPositive
         self.y=y
+        self.radius = 0.5
 
     def getForceAtPosition(self, position: Translation2d) -> Force:
         return Force(0, self._distToForceMag(self.y - position.Y()))
@@ -73,6 +85,8 @@ class VerticalObstacle(Obstacle):
         self.strength = strength
         self.forceIsPositive = forceIsPositive
         self.x=x
+        self.radius = 0.5
+
 
     def getForceAtPosition(self, position: Translation2d) -> Force:
         return Force(self._distToForceMag(self.x - position.X()), 0)
@@ -80,7 +94,7 @@ class VerticalObstacle(Obstacle):
     def getDist(self, position: Translation2d) -> float:
         return abs(position.x - self.x)
 
-GOAL_STRENGTH = 0.65
+GOAL_STRENGTH = 0.035
 
 FIELD_OBSTACLES = [
     PointObstacle(location=Translation2d(5.56, 2.74)),
@@ -92,10 +106,10 @@ FIELD_OBSTACLES = [
 ]
 
 WALLS = [
-    HorizontalObstacle(y=0.0, forceIsPositive=True),
-    HorizontalObstacle(y=FIELD_Y_M, forceIsPositive=False),
-    VerticalObstacle(x=0.0, forceIsPositive=True),
-    VerticalObstacle(x=FIELD_X_M, forceIsPositive=False)
+   HorizontalObstacle(y=0.0, forceIsPositive=True),
+   HorizontalObstacle(y=FIELD_Y_M, forceIsPositive=False),
+   VerticalObstacle(x=0.0, forceIsPositive=True),
+   VerticalObstacle(x=FIELD_X_M, forceIsPositive=False)
 ]
 
 class RepulsorFieldPlanner:
