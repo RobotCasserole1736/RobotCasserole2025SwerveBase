@@ -4,6 +4,7 @@ from wpimath.geometry import Pose2d, Translation2d
 from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
+from utils.mapLookup2d import MapLookup2D
 
 def _logistic_func(x, L, k, x0):
     """Logistic function."""
@@ -94,7 +95,7 @@ class VerticalObstacle(Obstacle):
     def getDist(self, position: Translation2d) -> float:
         return abs(position.x - self.x)
 
-GOAL_STRENGTH = 0.035
+GOAL_STRENGTH = 0.04
 
 FIELD_OBSTACLES = [
     PointObstacle(location=Translation2d(5.56, 2.74)),
@@ -112,6 +113,17 @@ WALLS = [
    VerticalObstacle(x=FIELD_X_M, forceIsPositive=False)
 ]
 
+GOAL_MARGIN_M = 0.05
+SLOW_DOWN_DISTANCE_M = 1.5
+
+GOAL_SLOW_DOWN_MAP = MapLookup2D([
+    (9999.0, 1.0),
+    (SLOW_DOWN_DISTANCE_M, 1.0),
+    (GOAL_MARGIN_M, 0.0),
+    (0.0, 0.0)
+])
+
+
 class RepulsorFieldPlanner:
     def __init__(self):
        self.fixedObstacles:list[Obstacle] = []
@@ -123,16 +135,13 @@ class RepulsorFieldPlanner:
         self.goal = goal
 
     def add_obstcale_observaton(self, pose:Pose2d):
-        obstacle = PointObstacle(location=Translation2d(pose.X() + 3,pose.Y()-0.5),strength=.7)
+        obstacle = PointObstacle(location=pose.translation(),strength=.7)
         self.transientObstcales.append(obstacle)
-        obstacle = PointObstacle(location=Translation2d(pose.X() - 3,pose.Y()+0.5),strength=.7)
-        self.transientObstcales.append(obstacle)
+
     
     def getGoalForce(self, curLocation:Translation2d) -> Force:
         if(self.goal is not None):
             displacement = self.goal.translation() - curLocation
-            if(displacement == 0.0):
-                return Force() # literally at goal, no force
             direction = displacement/displacement.norm()
             mag = GOAL_STRENGTH * (1 + 1.0/(0.0001 + displacement.norm()))
             return Force(direction.x*mag, direction.y*mag)
@@ -156,11 +165,19 @@ class RepulsorFieldPlanner:
             retArr.extend(obstacle.getTelemTrans())
 
         return retArr
+    
+    def atGoal(self, trans:Translation2d)->bool:
+        if(self.goal is None):
+            return True
+        else:
+            return (self.goal.translation() - trans).norm() < GOAL_MARGIN_M
 
     def getForceAtTrans(self, trans:Translation2d)->Force:
+
         goalForce = self.getGoalForce(trans)
         
         repusliveForces = []
+
         for obstacle in self.fixedObstacles:
             repusliveForces.append(obstacle.getForceAtPosition(trans))
         for obstacle in self.transientObstcales:
@@ -172,29 +189,34 @@ class RepulsorFieldPlanner:
             netForce += force
 
         return netForce
-       
+
     def getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
         retVal = DrivetrainCommand() # Default, no command
         if(self.goal is not None):
             curTrans = curPose.translation()
 
-            err = curTrans - self.goal.translation()
+            if(not self.atGoal(curTrans)):
 
-            if(err.norm() < stepSize_m*1.5):
-                retVal.velT = 0.0
-                retVal.velX = 0.0
-                retVal.velY = 0.0
-                retVal.desPose = self.goal
-            else:
+                err = curTrans - self.goal.translation()
+                nextTrans = curTrans
+                # Slow down when we're near the goal
+                slowFactor = GOAL_SLOW_DOWN_MAP.lookup(err.norm())
+
+
                 netForce = self.getForceAtTrans(curPose.translation())
 
-                # Take a step in the direction of the force
+                # Calculate a substep in the direction of the force
                 step = Translation2d(stepSize_m*netForce.unitX(), stepSize_m*netForce.unitY()) 
 
+                # Take that substep
+                nextTrans += step
+
+
                 # Assemble velocity commands based on the step we took
-                retVal.velX = (step.x)/0.02
-                retVal.velY = (step.y)/0.02
+                retVal.velX = (nextTrans - curTrans).X()/0.02 * slowFactor
+                retVal.velY = (nextTrans - curTrans).Y()/0.02 * slowFactor
                 retVal.velT = 0.0 # TODO
-                retVal.desPose = Pose2d(curTrans+step, curPose.rotation())
+                retVal.desPose = Pose2d(nextTrans, curPose.rotation())
+            
         
         return retVal

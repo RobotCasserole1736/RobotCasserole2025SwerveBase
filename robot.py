@@ -1,4 +1,3 @@
-from gettext import translation
 import sys
 import wpilib
 from dashboard import Dashboard
@@ -18,7 +17,7 @@ from utils.powerMonitor import PowerMonitor
 from webserver.webserver import Webserver
 from AutoSequencerV2.autoSequencer import AutoSequencer
 from utils.powerMonitor import PowerMonitor
-from navigation.repulsorFieldPlanner import PointObstacle, RepulsorFieldPlanner
+from wpimath.geometry import Transform2d, Rotation2d
 
 class MyRobot(wpilib.TimedRobot):
     #########################################################
@@ -103,7 +102,10 @@ class MyRobot(wpilib.TimedRobot):
             self.driveTrain.resetGyro()
 
         if self.dInt.getCreateObstacle():
-            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose())
+            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(3.0, -0.5, Rotation2d())))
+            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(3.0, 0.0, Rotation2d())))
+            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(-3.0, 0.5, Rotation2d())))
+            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(-3.0, 0.0, Rotation2d())))
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
         self.autodrive.updateTelemetry()

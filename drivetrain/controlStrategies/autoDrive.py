@@ -12,7 +12,8 @@ GOAL_PICKUP = Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0))
 GOAL_SPEAKER = Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(0.0))
 SPEED_SCALAR = 0.75
 
-TELEM_STEP_M = 0.25
+TELEM_LOOKAHEAD_DIST_M = 3.0
+TELEM_LOOKAHEAD_STEPS = 7
 
 class AutoDrive(metaclass=Singleton):
     def __init__(self):
@@ -32,11 +33,12 @@ class AutoDrive(metaclass=Singleton):
     
     def updateTelemetry(self) -> None:        
         self._telemTraj = []
+        stepsize = TELEM_LOOKAHEAD_DIST_M/TELEM_LOOKAHEAD_STEPS
         if(self._rfp.goal is not None):
             cp = self._curPose
-            for _ in range(0,15):
+            for _ in range(0,TELEM_LOOKAHEAD_STEPS):
                 self._telemTraj.append(cp)
-                tmp = self._rfp.getCmd(cp, TELEM_STEP_M)
+                tmp = self._rfp.getCmd(cp, stepsize)
                 if(tmp.desPose is not None):
                     cp = tmp.desPose
                 else:
