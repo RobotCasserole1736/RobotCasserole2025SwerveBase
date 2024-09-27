@@ -104,7 +104,6 @@ class MyRobot(wpilib.TimedRobot):
 
         if self.dInt.getCreateObstacle():
             self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose())
-            print("Creating obstacle")
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
         self.autodrive.updateTelemetry()
