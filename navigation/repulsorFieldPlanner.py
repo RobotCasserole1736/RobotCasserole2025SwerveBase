@@ -26,7 +26,7 @@ class Obstacle:
     def getForceAtPosition(self, position:Translation2d)->Force:
         return Force()
     def _distToForceMag(self, dist:float)->float:
-        forceMag = self.strength / (0.00001 + abs(dist**3))
+        forceMag = self.strength / (0.00001 + abs(dist**2))
         if(not self.forceIsPositive):
             forceMag *= -1.0
         return forceMag
