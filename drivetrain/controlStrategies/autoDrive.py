@@ -2,6 +2,7 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.trajectory import Trajectory
 from drivetrain.controlStrategies.holonomicDriveController import HolonomicDriveController
 from drivetrain.drivetrainCommand import DrivetrainCommand
+from navigation.obstacleDetector import ObstacleDetector
 from utils.signalLogging import log
 from utils.singleton import Singleton
 from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
@@ -21,6 +22,7 @@ class AutoDrive(metaclass=Singleton):
         self._trajCtrl = HolonomicDriveController()
         self._curPose = Pose2d()
         self._telemTraj = []
+        self._obsDet = ObstacleDetector()
 
     def setRequest(self, toSpeaker, toPickup) -> None:
         self._toSpeaker = toSpeaker
@@ -42,6 +44,9 @@ class AutoDrive(metaclass=Singleton):
 
         retCmd = cmdIn # default - no auto driving
         self._curPose = curPose
+
+        for obs in self._obsDet.getObstacles(curPose):
+            self._rfp.add_obstcale_observaton(obs)
 
         self._rfp.decay_observations()
 

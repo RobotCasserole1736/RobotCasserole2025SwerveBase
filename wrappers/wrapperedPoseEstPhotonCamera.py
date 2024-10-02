@@ -17,7 +17,7 @@ class CameraPoseObservation:
 # 1 - resolve issues with target ambiguity (two possible poses for each observation)
 # 2 - Convert pose estimates to the field
 # 3 - Handle recording latency of when the image was actually seen
-class WrapperedPhotonCamera:
+class WrapperedPoseEstPhotonCamera:
     def __init__(self, camName, robotToCam):
         setVersionCheckEnabled(False)
 

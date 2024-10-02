@@ -6,6 +6,7 @@ from drivetrain.controlStrategies.trajectory import Trajectory
 from drivetrain.drivetrainCommand import DrivetrainCommand
 from drivetrain.drivetrainControl import DrivetrainControl
 from humanInterface.driverInterface import DriverInterface
+from navigation.obstacles import PointObstacle
 from utils.segmentTimeTracker import SegmentTimeTracker
 from utils.signalLogging import SignalWrangler
 from utils.calibration import CalibrationWrangler
@@ -17,7 +18,7 @@ from utils.powerMonitor import PowerMonitor
 from webserver.webserver import Webserver
 from AutoSequencerV2.autoSequencer import AutoSequencer
 from utils.powerMonitor import PowerMonitor
-from wpimath.geometry import Transform2d, Rotation2d
+from wpimath.geometry import Translation2d
 
 class MyRobot(wpilib.TimedRobot):
     #########################################################
@@ -107,10 +108,17 @@ class MyRobot(wpilib.TimedRobot):
             self.driveTrain.resetGyro()
 
         if self.dInt.getCreateObstacle():
-            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(3.0, -0.5, Rotation2d())))
-            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(3.0, 0.0, Rotation2d())))
-            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(-3.0, 0.5, Rotation2d())))
-            self.autodrive._rfp.add_obstcale_observaton(self.driveTrain.poseEst.getCurEstPose().transformBy(Transform2d(-3.0, 0.0, Rotation2d())))
+            # For test purposes, inject a series of obstacles around the current pose
+            ct = self.driveTrain.poseEst.getCurEstPose().translation()
+            tfs = [
+                Translation2d(3.0, -0.5),
+                Translation2d(3.0, 0.0),
+                Translation2d(-3.0, 0.5),
+                Translation2d(-3.0, 0.0)
+            ]
+            for tf in tfs:
+                obs = PointObstacle(location=(ct+tf), strength=0.7)
+                self.autodrive._rfp.add_obstcale_observaton(obs)
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
 

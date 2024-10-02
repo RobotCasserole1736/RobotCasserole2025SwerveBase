@@ -12,7 +12,7 @@ from drivetrain.drivetrainPhysical import (
 from drivetrain.poseEstimation.drivetrainPoseTelemetry import DrivetrainPoseTelemetry
 from utils.faults import Fault
 from utils.signalLogging import log
-from wrappers.wrapperedPhotonCamera import WrapperedPhotonCamera
+from wrappers.wrapperedPoseEstPhotonCamera import WrapperedPoseEstPhotonCamera
 
 
 class DrivetrainPoseEstimator:
@@ -25,8 +25,8 @@ class DrivetrainPoseEstimator:
         self.gyroDisconFault = Fault("Gyro Disconnected")
 
         self.cams = [
-            WrapperedPhotonCamera("LEFT_CAM", ROBOT_TO_LEFT_CAM),
-            WrapperedPhotonCamera("RIGHT_CAM", ROBOT_TO_RIGHT_CAM),
+            WrapperedPoseEstPhotonCamera("LEFT_CAM", ROBOT_TO_LEFT_CAM),
+            WrapperedPoseEstPhotonCamera("RIGHT_CAM", ROBOT_TO_RIGHT_CAM),
         ]
         self.camTargetsVisible = False
 

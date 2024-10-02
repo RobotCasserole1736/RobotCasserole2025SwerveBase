@@ -8,8 +8,8 @@ from ntcore import NetworkTableInstance
 
 from utils.signalLogging import log
 from utils.allianceTransformUtils import transform
-from drivetrain.drivetrainPhysical import ROBOT_TO_LEFT_CAM, ROBOT_TO_RIGHT_CAM, robotToModuleTranslations
-from wrappers.wrapperedPhotonCamera import CameraPoseObservation
+from drivetrain.drivetrainPhysical import ROBOT_TO_FRONT_CAM, ROBOT_TO_LEFT_CAM, ROBOT_TO_RIGHT_CAM, robotToModuleTranslations
+from wrappers.wrapperedPoseEstPhotonCamera import CameraPoseObservation
 
 
 class DrivetrainPoseTelemetry:
@@ -35,6 +35,11 @@ class DrivetrainPoseTelemetry:
         self.rightCamPosePublisher = (
             NetworkTableInstance.getDefault()
             .getStructTopic("/RightCamPose", Pose3d)
+            .publish()
+        )
+        self.frontCamPosePublisher = (
+            NetworkTableInstance.getDefault()
+            .getStructTopic("/FrontCamPose", Pose3d)
             .publish()
         )
 
@@ -79,6 +84,7 @@ class DrivetrainPoseTelemetry:
 
         self.leftCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_LEFT_CAM))
         self.rightCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_RIGHT_CAM))
+        self.frontCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_FRONT_CAM))
 
         log("DT Pose Est X", metersToFeet(estPose.X()), "ft")
         log("DT Pose Est Y", metersToFeet(estPose.Y()), "ft")
