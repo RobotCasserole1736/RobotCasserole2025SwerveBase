@@ -6,6 +6,7 @@ from utils.signalLogging import log
 from utils.singleton import Singleton
 from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
 from drivetrain.drivetrainPhysical import MAX_DT_LINEAR_SPEED
+from utils.allianceTransformUtils import transform
 
 
 GOAL_PICKUP = Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0))
@@ -46,9 +47,9 @@ class AutoDrive(metaclass=Singleton):
 
         # Handle command changes
         if(self._toPickup):
-            self._rfp.setGoal(GOAL_PICKUP)
+            self._rfp.setGoal(transform(GOAL_PICKUP))
         elif(self._toSpeaker):
-            self._rfp.setGoal(GOAL_SPEAKER)
+            self._rfp.setGoal(transform(GOAL_SPEAKER))
         elif(not self._toSpeaker and not self._toPickup):
             self._rfp.setGoal(None)
 

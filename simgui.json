@@ -103,6 +103,7 @@
         "left": 150,
         "right": 2961,
         "top": 79,
+        "units": "meters",
         "width": 16.541748046875,
         "window": {
           "visible": true
