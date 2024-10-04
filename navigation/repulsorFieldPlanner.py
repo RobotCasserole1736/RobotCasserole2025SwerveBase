@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 import math
-from wpimath.geometry import Pose2d, Translation2d
+from wpimath.geometry import Pose2d, Translation2d, Rotation2d
 from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
 from navigation.navForce import Force
-from navigation.obstacles import HorizontalObstacle, Obstacle, PointObstacle, VerticalObstacle
+from navigation.obstacles import HorizontalObstacle, Obstacle, VerticalObstacle, Wall, Lane
 from utils.mapLookup2d import MapLookup2D
 from utils.signalLogging import log
 
@@ -14,22 +14,33 @@ from utils.signalLogging import log
 # Too small and the robot will get stuck on obstacles ("local minima")
 GOAL_STRENGTH = 0.04
 
+GOAL_PICKUP = Pose2d.fromFeet(50,8,Rotation2d.fromDegrees(0.0))
+GOAL_SPEAKER = Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(180.0))
+
 # The Fixed obstacles are everything fixed on the field, plus the walls
 FIELD_OBSTACLES = [
-    PointObstacle(location=Translation2d(5.56, 2.74)),
-    PointObstacle(location=Translation2d(3.45, 4.07)),
-    PointObstacle(location=Translation2d(5.56, 5.35)),
-    PointObstacle(location=Translation2d(11.0, 2.74)),
-    PointObstacle(location=Translation2d(13.27, 4.07)),
-    PointObstacle(location=Translation2d(11.0, 5.35)),
+    Wall(Translation2d(FIELD_X_M*0.0, FIELD_Y_M*1.0), Translation2d(FIELD_X_M*0.25, FIELD_Y_M*0.5)),
+    Wall(Translation2d(FIELD_X_M*0.5, FIELD_Y_M*0.5), Translation2d(FIELD_X_M*1.0, FIELD_Y_M*0.0)),
 ]
 
-WALLS = [
-   HorizontalObstacle(y=0.0, forceIsPositive=True),
-   HorizontalObstacle(y=FIELD_Y_M, forceIsPositive=False),
-   VerticalObstacle(x=0.0, forceIsPositive=True),
-   VerticalObstacle(x=FIELD_X_M, forceIsPositive=False)
+INVERTING_LANES = [
+    Lane(Translation2d(6, 3), Translation2d(7,5)),
 ]
+
+NONIVERTING_LANES = [
+    Lane(Translation2d(12, 1), Translation2d(6,3)),
+    Lane(Translation2d(2.5, 7), Translation2d(5,5)),
+]
+
+B_WALL = HorizontalObstacle(y=0.0)
+T_WALL = HorizontalObstacle(y=FIELD_Y_M)
+T_WALL.setForceInverted(True)
+
+L_WALL = VerticalObstacle(x=0.0)
+R_WALL = VerticalObstacle(x=FIELD_X_M)
+R_WALL.setForceInverted(True)
+
+OUTTER_WALLS = [B_WALL, T_WALL, L_WALL, R_WALL]
 
 # This map controls how the commanded velocity slows down as we approach the goal
 GOAL_MARGIN_M = 0.05
@@ -49,13 +60,19 @@ class RepulsorFieldPlanner:
     def __init__(self):
         self.fixedObstacles:list[Obstacle] = []
         self.fixedObstacles.extend(FIELD_OBSTACLES)
-        self.fixedObstacles.extend(WALLS)
+        self.fixedObstacles.extend(INVERTING_LANES)
+        self.fixedObstacles.extend(NONIVERTING_LANES)
+        self.fixedObstacles.extend(OUTTER_WALLS)
         self.transientObstcales:list[Obstacle] = []
         self.distToGo:float = 0.0
         self.goal:Pose2d|None = None
 
     def setGoal(self, goal:Pose2d|None):
         self.goal = goal
+
+        # Reverse lane direction for going toward speaker
+        for lane in INVERTING_LANES:
+            lane.setForceInverted(goal == GOAL_SPEAKER)
 
     def add_obstcale_observaton(self, obs:Obstacle):
         self.transientObstcales.append(obs)
