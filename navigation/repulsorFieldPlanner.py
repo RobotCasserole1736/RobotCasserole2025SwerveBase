@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import math
-from wpimath.geometry import Pose2d, Translation2d
+from wpimath.geometry import Pose2d, Translation2d, Transform2d, Rotation2d
 from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
@@ -126,13 +126,21 @@ class RepulsorFieldPlanner:
                 # Slow down when we're near the goal
                 slowFactor = GOAL_SLOW_DOWN_MAP.lookup(self.distToGo)
 
-                netForce = self.getForceAtTrans(curPose.translation())
+                nextTrans = curTrans
 
-                # Calculate a substep in the direction of the force
-                step = Translation2d(stepSize_m*netForce.unitX(), stepSize_m*netForce.unitY()) 
+                for _ in range(4):
 
-                # Take that substep
-                nextTrans = curTrans + step
+                    if (nextTrans - curTrans).norm() >= stepSize_m:
+                        break
+
+                    netForce = self.getForceAtTrans(nextTrans)
+
+                    # Calculate a substep in the direction of the force
+                    step = Translation2d(stepSize_m*netForce.unitX()*0.5, stepSize_m*netForce.unitY()*0.5) 
+
+                    # Take that step
+                    nextTrans += step
+
 
                 # Assemble velocity commands based on the step we took
                 retVal.velX = (nextTrans - curTrans).X()/0.02 * slowFactor
