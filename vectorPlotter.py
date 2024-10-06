@@ -204,7 +204,7 @@ if __name__ == "__main__":
     YCount = 0.1
     while YCount < 8.1:
         while XCount < 16.4:
-            force = rpp.getForceAtTrans(Translation2d(XCount, YCount))
+            force = rpp._getForceAtTrans(Translation2d(XCount, YCount))
             plotter.add_vector(XCount, YCount, force.x, force.y)
             XCount += .2
         YCount += .2

@@ -18,9 +18,8 @@ class AutoDrive(metaclass=Singleton):
     def __init__(self):
         self._toSpeaker = False
         self._toPickup = False
-        self._rfp = RepulsorFieldPlanner()
+        self.rfp = RepulsorFieldPlanner()
         self._trajCtrl = HolonomicDriveController()
-        self._curPose = Pose2d()
         self._telemTraj = []
         self._obsDet = ObstacleDetector()
 
@@ -32,35 +31,37 @@ class AutoDrive(metaclass=Singleton):
         return None # TODO
     
     def updateTelemetry(self) -> None:        
-        self._telemTraj = self._rfp.updateTelemetry(self._curPose)
+        self._telemTraj = self.rfp.updateTelemetry()
 
     def getWaypoints(self) -> list[Pose2d]:
         return self._telemTraj
     
     def getObstacles(self) -> list[Translation2d]:
-        return self._rfp.getObstacleTransList()
+        return self.rfp.getObstacleTransList()
+    
+    def isRunning(self)->bool:
+        return self.rfp.goal != None
 
     def update(self, cmdIn: DrivetrainCommand, curPose: Pose2d) -> DrivetrainCommand:
 
         retCmd = cmdIn # default - no auto driving
-        self._curPose = curPose
 
         for obs in self._obsDet.getObstacles(curPose):
-            self._rfp.add_obstcale_observaton(obs)
+            self.rfp.add_obstcale_observaton(obs)
 
-        self._rfp.decay_observations()
+        self.rfp._decay_observations()
 
         # Handle command changes
         if(self._toPickup):
-            self._rfp.setGoal(transform(GOAL_PICKUP))
+            self.rfp.setGoal(transform(GOAL_PICKUP))
         elif(self._toSpeaker):
-            self._rfp.setGoal(transform(GOAL_SPEAKER))
+            self.rfp.setGoal(transform(GOAL_SPEAKER))
         elif(not self._toSpeaker and not self._toPickup):
-            self._rfp.setGoal(None)
+            self.rfp.setGoal(None)
 
         # If being asked to auto-align, use the command from the dynamic path planner
         if(self._toPickup or self._toSpeaker):
-            olCmd = self._rfp.getCmd(curPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
+            olCmd = self.rfp.update(curPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
             log("AutoDrive FwdRev Cmd", olCmd.velX, "mps")
             log("AutoDrive Strafe Cmd", olCmd.velY, "mps")
             log("AutoDrive Rot Cmd", olCmd.velT, "radpers")
