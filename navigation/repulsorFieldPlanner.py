@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-import math
 from wpimath.geometry import Pose2d, Translation2d
 from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
@@ -42,8 +40,12 @@ GOAL_SLOW_DOWN_MAP = MapLookup2D([
 ])
 
 # These define how far in advance we attempt to plan for telemetry purposes
-TELEM_LOOKAHEAD_DIST_M = 3.0
-TELEM_LOOKAHEAD_STEPS = 7
+LOOKAHEAD_DIST_M = 3.0
+LOOKAHEAD_STEPS = 7
+LOOKAHEAD_STEP_SIZE = LOOKAHEAD_DIST_M/LOOKAHEAD_STEPS
+
+# If the lookahead routine's end poit is within this, we declare ourselves stuck.
+STUCK_DIST = LOOKAHEAD_DIST_M/4
 
 class RepulsorFieldPlanner:
     def __init__(self):
@@ -53,6 +55,7 @@ class RepulsorFieldPlanner:
         self.transientObstcales:list[Obstacle] = []
         self.distToGo:float = 0.0
         self.goal:Pose2d|None = None
+        self.lookaheadTraj:list[Pose2d] = []
 
     def setGoal(self, goal:Pose2d|None):
         self.goal = goal
@@ -70,7 +73,7 @@ class RepulsorFieldPlanner:
             # no goal, no force
             return Force()
 
-    def decay_observations(self):
+    def _decay_observations(self):
         # Linear decay of each transient obstacle observation
         for obs in self.transientObstcales:
             obs.strength -= 0.01
@@ -87,6 +90,15 @@ class RepulsorFieldPlanner:
 
         return retArr
     
+    def isStuck(self) -> bool:
+        if(len(self.lookaheadTraj) > 3 and self.goal is not None):
+            start = self.lookaheadTraj[0]
+            end = self.lookaheadTraj[-1]
+            dist = (end-start).translation().norm()
+            distToGoal = (end - self.goal).translation().norm()
+            return dist < STUCK_DIST and distToGoal > LOOKAHEAD_DIST_M * 2
+        else:
+            return False
     
     def atGoal(self, trans:Translation2d)->bool:
         if(self.goal is None):
@@ -94,7 +106,7 @@ class RepulsorFieldPlanner:
         else:
             return (self.goal.translation() - trans).norm() < GOAL_MARGIN_M
 
-    def getForceAtTrans(self, trans:Translation2d)->Force:
+    def _getForceAtTrans(self, trans:Translation2d)->Force:
 
         goalForce = self.getGoalForce(trans)
         
@@ -112,8 +124,12 @@ class RepulsorFieldPlanner:
 
         return netForce
     
+    def update(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
+        curCmd = self._getCmd(curPose, stepSize_m)
+        self._doLookahead(curPose)
+        return curCmd
 
-    def getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
+    def _getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
         retVal = DrivetrainCommand() # Default, no command
 
         if(self.goal is not None):
@@ -126,7 +142,7 @@ class RepulsorFieldPlanner:
                 # Slow down when we're near the goal
                 slowFactor = GOAL_SLOW_DOWN_MAP.lookup(self.distToGo)
 
-                netForce = self.getForceAtTrans(curPose.translation())
+                netForce = self._getForceAtTrans(curPose.translation())
 
                 # Calculate a substep in the direction of the force
                 step = Translation2d(stepSize_m*netForce.unitX(), stepSize_m*netForce.unitY()) 
@@ -141,23 +157,33 @@ class RepulsorFieldPlanner:
                 retVal.desPose = Pose2d(nextTrans, self.goal.rotation())
         else:
             self.distToGo = 0.0
-
+        
         return retVal
     
-    def updateTelemetry(self, curPose:Pose2d) -> list[Pose2d]:        
-        telemTraj = []
-        stepsize = TELEM_LOOKAHEAD_DIST_M/TELEM_LOOKAHEAD_STEPS
+    def _doLookahead(self, curPose):
+        self.lookaheadTraj = []
         if(self.goal is not None):
             cp = curPose
-            for _ in range(0,TELEM_LOOKAHEAD_STEPS):
-                telemTraj.append(cp)
-                tmp = self.getCmd(cp, stepsize)
+            self.lookaheadTraj.append(cp)
+
+            for _ in range(0,LOOKAHEAD_STEPS):
+                tmp = self._getCmd(cp, LOOKAHEAD_STEP_SIZE)
                 if(tmp.desPose is not None):
                     cp = tmp.desPose
+                    self.lookaheadTraj.append(cp)
+
+                    if((cp - self.goal).translation().norm() < LOOKAHEAD_STEP_SIZE):
+                        # At the goal, no need to keep looking ahead
+                        break
                 else:
+                    # Weird, no pose given back, give up.
                     break
 
+    def updateTelemetry(self) -> list[Pose2d]:        
         log("PotentialField Num Obstacles", len(self.fixedObstacles) + len(self.transientObstcales))
         log("PotentialField Path Active", self.goal is not None)
         log("PotentialField DistToGo", self.distToGo, "m")
-        return telemTraj
+        if(self.goal is not None):
+            return self.lookaheadTraj
+        else:
+            return []

@@ -6,6 +6,7 @@ from drivetrain.controlStrategies.trajectory import Trajectory
 from drivetrain.drivetrainCommand import DrivetrainCommand
 from drivetrain.drivetrainControl import DrivetrainControl
 from humanInterface.driverInterface import DriverInterface
+from humanInterface.ledControl import LEDControl
 from navigation.obstacles import PointObstacle
 from utils.segmentTimeTracker import SegmentTimeTracker
 from utils.signalLogging import SignalWrangler
@@ -39,6 +40,7 @@ class MyRobot(wpilib.TimedRobot):
         self.stt = SegmentTimeTracker()      
 
         self.dInt = DriverInterface()
+        self.ledCtrl = LEDControl()
 
         self.autoSequencer = AutoSequencer()
 
@@ -67,6 +69,10 @@ class MyRobot(wpilib.TimedRobot):
         self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
         self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
         self.driveTrain.poseEst.telemetry.setCurObstacles(self.autodrive.getObstacles())
+
+        self.ledCtrl.setAutoDrive(self.autodrive.isRunning())
+        self.ledCtrl.setStuck(self.autodrive.rfp.isStuck())
+        self.ledCtrl.update()
 
         self.stt.end()
 
@@ -111,21 +117,22 @@ class MyRobot(wpilib.TimedRobot):
             # For test purposes, inject a series of obstacles around the current pose
             ct = self.driveTrain.poseEst.getCurEstPose().translation()
             tfs = [
-                Translation2d(3.0, -0.5),
-                Translation2d(3.0, 0.0),
-                Translation2d(-3.0, 0.5),
-                Translation2d(-3.0, 0.0)
+                Translation2d(1.7, -0.5),
+                Translation2d(0.75, -0.75),
+                Translation2d(1.7, 0.5),
+                Translation2d(0.75, 0.75),
+                Translation2d(2.0, 0.0),
+                Translation2d(0.0, 1.0),
+                Translation2d(0.0, -1.0),
             ]
             for tf in tfs:
                 obs = PointObstacle(location=(ct+tf), strength=0.7)
-                self.autodrive._rfp.add_obstcale_observaton(obs)
+                self.autodrive.rfp.add_obstcale_observaton(obs)
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
 
         # No trajectory in Teleop
         Trajectory().setCmd(None)
-
-
 
     #########################################################
     ## Disabled-Specific init and update
