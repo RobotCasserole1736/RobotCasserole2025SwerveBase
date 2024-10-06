@@ -40,8 +40,8 @@ GOAL_SLOW_DOWN_MAP = MapLookup2D([
 ])
 
 # These define how far in advance we attempt to plan for telemetry purposes
-LOOKAHEAD_DIST_M = 3.0
-LOOKAHEAD_STEPS = 7
+LOOKAHEAD_DIST_M = 1.5
+LOOKAHEAD_STEPS = 4
 LOOKAHEAD_STEP_SIZE = LOOKAHEAD_DIST_M/LOOKAHEAD_STEPS
 
 # If the lookahead routine's end poit is within this, we declare ourselves stuck.
