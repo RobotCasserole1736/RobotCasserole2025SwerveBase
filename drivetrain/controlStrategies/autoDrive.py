@@ -18,14 +18,16 @@ class AutoDrive(metaclass=Singleton):
     def __init__(self):
         self._toSpeaker = False
         self._toPickup = False
+        self._isStuck = False
         self.rfp = RepulsorFieldPlanner()
         self._trajCtrl = HolonomicDriveController()
         self._telemTraj = []
         self._obsDet = ObstacleDetector()
 
-    def setRequest(self, toSpeaker, toPickup) -> None:
+    def setRequest(self, toSpeaker, toPickup, isStuck) -> None:
         self._toSpeaker = toSpeaker
         self._toPickup = toPickup
+        self._isStuck = isStuck
 
     def getTrajectory(self) -> Trajectory|None:
         return None # TODO
@@ -52,13 +54,14 @@ class AutoDrive(metaclass=Singleton):
         self.rfp._decay_observations()
 
         # Handle command changes
+
         if(self._toPickup):
             self.rfp.setGoal(transform(GOAL_PICKUP))
         elif(self._toSpeaker):
             self.rfp.setGoal(transform(GOAL_SPEAKER))
         elif(not self._toSpeaker and not self._toPickup):
             self.rfp.setGoal(None)
-
+        
         # If being asked to auto-align, use the command from the dynamic path planner
         if(self._toPickup or self._toSpeaker):
             olCmd = self.rfp.update(curPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
@@ -67,6 +70,8 @@ class AutoDrive(metaclass=Singleton):
             log("AutoDrive Rot Cmd", olCmd.velT, "radpers")
             if( olCmd.desPose is not None):
                 retCmd = self._trajCtrl.update2(olCmd.velX, olCmd.velY, olCmd.velT, olCmd.desPose, curPose)
-
+            if(self._isStuck):
+                olCmd = self.rfp.update(curPose,0)
+                retCmd = self._trajCtrl.update2(0,0,0,curPose,curPose)
 
         return retCmd
