@@ -51,7 +51,7 @@ WALLS = [B_WALL, T_WALL, L_WALL, R_WALL]
 # However, near the goal, we'd like to slow down. This map defines how we ramp down
 # the step-size toward zero as we get closer to the goal. Once we are close enough,
 # we stop taking steps and simply say the desired position is at the goal.
-GOAL_MARGIN_M = 0.05
+GOAL_MARGIN_M = 0.2
 SLOW_DOWN_DISTANCE_M = 1.5
 GOAL_SLOW_DOWN_MAP = MapLookup2D([
     (9999.0, 1.0),
@@ -240,10 +240,30 @@ class RepulsorFieldPlanner:
 
 
                 # Assemble velocity commands based on the step we took
-                retVal.velX = (nextTrans - curTrans).X()/0.02 * slowFactor
-                retVal.velY = (nextTrans - curTrans).Y()/0.02 * slowFactor
-                retVal.velT = 0.0 # Let the closed-loop controller do the work.
-                retVal.desPose = Pose2d(nextTrans, self.goal.rotation())
+                # Note that depending on how the substeps fell, we might have taken more than a full step
+                # We continue to take a step _in the direction_ of the sum of the substeps, but of
+                # the correct size.
+
+                # First, Scale total step to be unit length
+                totalStep = (nextTrans - curTrans)
+                totalStep = totalStep * (1.0/totalStep.norm())
+
+                # Then, Scale totalStep to the right size
+                totalStep *= (stepSize_m * slowFactor)
+
+                # Periodic loops run at 0.02 sec/loop
+                retVal.velX = totalStep.X() / 0.02
+                retVal.velY = totalStep.Y() / 0.02
+                retVal.velT = 0.0 # For now.... Let the closed-loop controller do the work to rotate us correctly
+                retVal.desPose = Pose2d(curTrans + totalStep, self.goal.rotation())
+
+
+            else:
+                # Case - at goal - just send the goal as the desired pose with (hopefully) no velocity
+                retVal.velX = 0.0
+                retVal.velY = 0.0
+                retVal.velT = 0.0
+                retVal.desPose = self.goal
         else:
             self.distToGo = 0.0
         
