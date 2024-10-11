@@ -2,9 +2,8 @@
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-from drivetrain.controlStrategies.autoDrive import GOAL_PICKUP
-from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
-from wpimath.geometry import Pose2d, Translation2d, Rotation2d
+from navigation.repulsorFieldPlanner import RepulsorFieldPlanner, GOAL_PICKUP, GOAL_SPEAKER
+from wpimath.geometry import Translation2d
 import matplotlib.pyplot as plt
 import numpy as np
 from navigation.navConstants import *

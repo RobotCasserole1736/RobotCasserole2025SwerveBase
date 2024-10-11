@@ -1,4 +1,4 @@
-from wpimath.geometry import Pose2d, Translation2d
+from wpimath.geometry import Pose2d, Translation2d, Rotation2d
 
 from utils.mapLookup2d import MapLookup2D
 from utils.signalLogging import log
@@ -22,7 +22,7 @@ MAX_OBSTACLES = 20
 TRANSIENT_OBS_DECAY_PER_LOOP = 0.1
 
 # Obstacles come in two main flavors: Fixed and Transient.
-# Transient obstacles decay and disaapear over time. They are things like other robots, or maybe gamepieces we don't want to drive through.
+# Transient obstacles decay and disappear over time. They are things like other robots, or maybe gamepieces we don't want to drive through.
 # Fixed obstacles are things like field elements or walls with fixed, known positions. They are always present and do not decay over time.
 
 # Fixed Obstacles - Six posts in the middle of the field from 2024
@@ -36,12 +36,19 @@ FIELD_OBSTACLES_2024 = [
 ]
 
 # Fixed Obstacles - Outer walls of the field 
-WALLS = [
-   HorizontalObstacle(y=0.0, forceIsPositive=True),
-   HorizontalObstacle(y=FIELD_Y_M, forceIsPositive=False),
-   VerticalObstacle(x=0.0, forceIsPositive=True),
-   VerticalObstacle(x=FIELD_X_M, forceIsPositive=False)
-]
+B_WALL = HorizontalObstacle(y=0.0)
+T_WALL = HorizontalObstacle(y=FIELD_Y_M)
+T_WALL.setForceInverted(True)
+
+L_WALL = VerticalObstacle(x=0.0)
+R_WALL = VerticalObstacle(x=FIELD_X_M)
+R_WALL.setForceInverted(True)
+
+WALLS = [B_WALL, T_WALL, L_WALL, R_WALL]
+
+# Happy Constants for the goal poses we may want to drive to
+GOAL_PICKUP = Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0))
+GOAL_SPEAKER = Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(180.0))
 
 # Usually, the path planner assumes we traverse the path at a fixed velocity
 # However, near the goal, we'd like to slow down. This map defines how we ramp down

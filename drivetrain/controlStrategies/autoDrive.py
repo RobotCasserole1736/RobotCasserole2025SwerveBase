@@ -1,17 +1,16 @@
-from wpimath.geometry import Pose2d, Rotation2d, Translation2d
+from wpimath.geometry import Pose2d, Translation2d
 from wpimath.trajectory import Trajectory
 from drivetrain.controlStrategies.holonomicDriveController import HolonomicDriveController
 from drivetrain.drivetrainCommand import DrivetrainCommand
 from navigation.obstacleDetector import ObstacleDetector
 from utils.signalLogging import log
 from utils.singleton import Singleton
-from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
+from navigation.repulsorFieldPlanner import GOAL_PICKUP, GOAL_SPEAKER, RepulsorFieldPlanner
 from drivetrain.drivetrainPhysical import MAX_DT_LINEAR_SPEED
 from utils.allianceTransformUtils import transform
 
 
-GOAL_PICKUP = Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0))
-GOAL_SPEAKER = Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(180.0))
+
 SPEED_SCALAR = 0.75
 
 class AutoDrive(metaclass=Singleton):
