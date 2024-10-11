@@ -22,6 +22,7 @@ class AutoDrive(metaclass=Singleton):
         self._trajCtrl = HolonomicDriveController()
         self._telemTraj = []
         self._obsDet = ObstacleDetector()
+        self._prevCmd:DrivetrainCommand|None = None
 
     def setRequest(self, toSpeaker, toPickup) -> None:
         self._toSpeaker = toSpeaker
@@ -61,12 +62,22 @@ class AutoDrive(metaclass=Singleton):
 
         # If being asked to auto-align, use the command from the dynamic path planner
         if(self._toPickup or self._toSpeaker):
-            olCmd = self.rfp.update(curPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
+
+            if(self._prevCmd is None or self._prevCmd.desPose is None):
+                olCmd = self.rfp.update(curPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
+            else:
+                olCmd = self.rfp.update(self._prevCmd.desPose, MAX_DT_LINEAR_SPEED*0.02*SPEED_SCALAR)
+
             log("AutoDrive FwdRev Cmd", olCmd.velX, "mps")
             log("AutoDrive Strafe Cmd", olCmd.velY, "mps")
             log("AutoDrive Rot Cmd", olCmd.velT, "radpers")
+
             if( olCmd.desPose is not None):
                 retCmd = self._trajCtrl.update2(olCmd.velX, olCmd.velY, olCmd.velT, olCmd.desPose, curPose)
+            
+            self._prevCmd = retCmd
+        else:
+            self._prevCmd = None
 
 
         return retCmd
