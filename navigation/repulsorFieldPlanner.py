@@ -1,22 +1,34 @@
-from dataclasses import dataclass
-import math
 from wpimath.geometry import Pose2d, Translation2d
-from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
-from drivetrain.drivetrainCommand import DrivetrainCommand
-from navigation.navForce import Force
-from navigation.obstacles import HorizontalObstacle, Obstacle, PointObstacle, VerticalObstacle
 from utils.mapLookup2d import MapLookup2D
 from utils.signalLogging import log
+
+from drivetrain.drivetrainCommand import DrivetrainCommand
+
+from navigation.navForce import Force
+from navigation.obstacles import HorizontalObstacle, Obstacle, PointObstacle, VerticalObstacle
+from navigation.navConstants import FIELD_X_M, FIELD_Y_M
+
+
 
 # Relative strength of how hard the goal pulls the robot toward it
 # Too big and the robot will be pulled through obstacles
 # Too small and the robot will get stuck on obstacles ("local minima")
 GOAL_STRENGTH = 0.04
+
+# Maximum number of obstacles we will remember. Older obstacles are automatically removed from our memory
 MAX_OBSTACLES = 20
 
-# The Fixed obstacles are everything fixed on the field, plus the walls
-FIELD_OBSTACLES = [
+# Rate at which transient obstacles decay in strength
+# Bigger numbers here make transient obstacles disappear faster
+TRANSIENT_OBS_DECAY_PER_LOOP = 0.1
+
+# Obstacles come in two main flavors: Fixed and Transient.
+# Transient obstacles decay and disaapear over time. They are things like other robots, or maybe gamepieces we don't want to drive through.
+# Fixed obstacles are things like field elements or walls with fixed, known positions. They are always present and do not decay over time.
+
+# Fixed Obstacles - Six posts in the middle of the field from 2024
+FIELD_OBSTACLES_2024 = [
     PointObstacle(location=Translation2d(5.56, 2.74)),
     PointObstacle(location=Translation2d(3.45, 4.07)),
     PointObstacle(location=Translation2d(5.56, 5.35)),
@@ -25,6 +37,7 @@ FIELD_OBSTACLES = [
     PointObstacle(location=Translation2d(11.0, 5.35)),
 ]
 
+# Fixed Obstacles - Outer walls of the field 
 WALLS = [
    HorizontalObstacle(y=0.0, forceIsPositive=True),
    HorizontalObstacle(y=FIELD_Y_M, forceIsPositive=False),
@@ -32,7 +45,10 @@ WALLS = [
    VerticalObstacle(x=FIELD_X_M, forceIsPositive=False)
 ]
 
-# This map controls how the commanded velocity slows down as we approach the goal
+# Usually, the path planner assumes we traverse the path at a fixed velocity
+# However, near the goal, we'd like to slow down. This map defines how we ramp down
+# the step-size toward zero as we get closer to the goal. Once we are close enough,
+# we stop taking steps and simply say the desired position is at the goal.
 GOAL_MARGIN_M = 0.05
 SLOW_DOWN_DISTANCE_M = 1.5
 GOAL_SLOW_DOWN_MAP = MapLookup2D([
@@ -42,28 +58,56 @@ GOAL_SLOW_DOWN_MAP = MapLookup2D([
     (0.0, 0.0)
 ])
 
-# These define how far in advance we attempt to plan for telemetry purposes
+# These define how far in advance we attempt to plan for telemetry and stuck-detection purposes
+# Increasing the distance causes us to look further ahead
 TELEM_LOOKAHEAD_DIST_M = 3.0
+# Increasing the number of steps increases the accuracy of our look-ahead prediction
+# but also increases CPU load on the RIO.
 TELEM_LOOKAHEAD_STEPS = 7
 
 class RepulsorFieldPlanner:
+    """
+    This class finds a path through the FRC playing field, from current location to a defined final goal, while avoiding defined obstacles.
+    The methodology is using "repulser field" or "potential field" algorithm - see
+    https://www.cs.cmu.edu/~motionplanning/lecture/Chap4-Potential-Field_howie.pdf for pictures
+
+    The basic idea: The goal provides an "attracting" force to pull the robot toward it.
+    Obstacles provide a repulsive force, pushing robots away from themselves.
+    Optionally (not yet fully implemented), "Lane" objects pull robots toward and along themselves
+
+    At each step, the planner calculates the force each of these things exerts at the position where the robot is located
+    Then, a total force is calculated by summing all those forces together with vector math
+    Finally, the planner will recommend a step of fixed size, in the direction the net force pushes on.
+    """
     def __init__(self):
         self.fixedObstacles:list[Obstacle] = []
-        self.fixedObstacles.extend(FIELD_OBSTACLES)
+        self.fixedObstacles.extend(FIELD_OBSTACLES_2024)
         self.fixedObstacles.extend(WALLS)
         self.transientObstcales:list[Obstacle] = []
         self.distToGo:float = 0.0
         self.goal:Pose2d|None = None
 
     def setGoal(self, goal:Pose2d|None):
+        """
+        Sets the current goal pose of the planner. This can be changed at any time.
+        Currently, A goal of None will cause the planner to not recommend any motion
+        TODO: In the future, a goal of "None" might be able to imply "just move as far from obstacles as possible". 
+        """
         self.goal = goal
 
     def add_obstcale_observaton(self, obs:Obstacle):
+        """
+        Call this to report a new, transient obstacle observed on the field.
+        """
         self.transientObstcales.append(obs)
         while len(self.transientObstcales) > MAX_OBSTACLES:
             self.transientObstcales.pop(0)
 
     def getGoalForce(self, curLocation:Translation2d) -> Force:
+        """
+        Calculate and return the force due to the goal.
+        Currently, Goal force is assumed to always have the same magnititude, and always pointing toward the goal.
+        """
         if(self.goal is not None):
             displacement = self.goal.translation() - curLocation
             direction = displacement/displacement.norm()
@@ -74,14 +118,27 @@ class RepulsorFieldPlanner:
             return Force()
 
     def decay_observations(self):
-        # Linear decay of each transient obstacle observation
+        """
+        Transient obstacles decay in strength over time. 
+        This function decays the obstacle's strength, and removes obstacles which have zero strength.
+        It should be called once per periodic loop.
+        """
         for obs in self.transientObstcales:
-            obs.strength -= 0.01
+            obs.strength -= TRANSIENT_OBS_DECAY_PER_LOOP
 
         # Only keep obstacles with positive strength
+        # Fully decayed obstacles have zero or negative strength.
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
 
     def getObstacleTransList(self) -> list[Translation2d]:
+        """
+        Return a list of translations (x/y points), representing the current obstacles
+        Just for telemetry purposes now
+        
+        TODO: This really only works well for point obstacles now. 
+        We'll need to consider in the future how to do this for linear obstacles
+        Perhaps a list of translation pairs (start/end) ?
+        """
         retArr = []
         for obstacle in self.fixedObstacles:
             retArr.extend(obstacle.getTelemTrans())
@@ -92,13 +149,22 @@ class RepulsorFieldPlanner:
     
     
     def atGoal(self, trans:Translation2d)->bool:
+        """
+        Checks if we're within margin of the set goal. Defaults to True if there is no goal.
+        """
         if(self.goal is None):
             return True
         else:
             return (self.goal.translation() - trans).norm() < GOAL_MARGIN_M
 
     def getForceAtTrans(self, trans:Translation2d)->Force:
-
+        """
+        Calculates the total force at a given X/Y point on the field.
+        This is the sum of:
+          1) Goal attractive force
+          2) Obstacle repulsive force
+          3) Lane attractive force (TODO still)
+        """
         goalForce = self.getGoalForce(trans)
         
         repusliveForces = []
@@ -117,6 +183,9 @@ class RepulsorFieldPlanner:
     
 
     def getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
+        """
+        Given a starting pose, and a maximum step size to take, produce a drivetrain command which moves the robot in the best direction
+        """
         retVal = DrivetrainCommand() # Default, no command
 
         if(self.goal is not None):
@@ -147,7 +216,12 @@ class RepulsorFieldPlanner:
 
         return retVal
     
-    def updateTelemetry(self, curPose:Pose2d) -> list[Pose2d]:        
+    def updateTelemetry(self, curPose:Pose2d) -> list[Pose2d]:
+        """
+        Perform all telemetry-related tasks.
+        This includes logging data, and performing the lookahead operation
+        Returns the list of Pose2D's that are the result of the lookahead operation
+        """
         telemTraj = []
         stepsize = TELEM_LOOKAHEAD_DIST_M/TELEM_LOOKAHEAD_STEPS
         if(self.goal is not None):
