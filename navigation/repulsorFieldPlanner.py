@@ -13,6 +13,7 @@ from utils.signalLogging import log
 # Too big and the robot will be pulled through obstacles
 # Too small and the robot will get stuck on obstacles ("local minima")
 GOAL_STRENGTH = 0.04
+MAX_OBSTACLES = 20
 
 # The Fixed obstacles are everything fixed on the field, plus the walls
 FIELD_OBSTACLES = [
@@ -59,6 +60,8 @@ class RepulsorFieldPlanner:
 
     def add_obstcale_observaton(self, obs:Obstacle):
         self.transientObstcales.append(obs)
+        while len(self.transientObstcales) > MAX_OBSTACLES:
+            self.transientObstcales.pop(0)
 
     def getGoalForce(self, curLocation:Translation2d) -> Force:
         if(self.goal is not None):
