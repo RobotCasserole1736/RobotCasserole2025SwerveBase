@@ -5,7 +5,8 @@ from drivetrain.drivetrainCommand import DrivetrainCommand
 from navigation.obstacleDetector import ObstacleDetector
 from utils.signalLogging import log
 from utils.singleton import Singleton
-from navigation.repulsorFieldPlanner import GOAL_PICKUP, GOAL_SPEAKER, RepulsorFieldPlanner
+from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
+from navigation.navConstants import GOAL_PICKUP, GOAL_SPEAKER
 from drivetrain.drivetrainPhysical import MAX_DT_LINEAR_SPEED
 from utils.allianceTransformUtils import transform
 
@@ -47,9 +48,9 @@ class AutoDrive(metaclass=Singleton):
         retCmd = cmdIn # default - no auto driving
 
         for obs in self._obsDet.getObstacles(curPose):
-            self.rfp.add_obstcale_observaton(obs)
+            self.rfp.addObstacleObservation(obs)
 
-        self.rfp._decay_observations()
+        self.rfp._decayObservations()
 
         # Handle command changes
         if(self._toPickup):

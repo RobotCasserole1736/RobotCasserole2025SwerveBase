@@ -7,7 +7,7 @@ from drivetrain.drivetrainCommand import DrivetrainCommand
 from drivetrain.drivetrainControl import DrivetrainControl
 from humanInterface.driverInterface import DriverInterface
 from humanInterface.ledControl import LEDControl
-from navigation.obstacles import PointObstacle
+from navigation.forceGenerators import PointObstacle
 from utils.segmentTimeTracker import SegmentTimeTracker
 from utils.signalLogging import SignalWrangler
 from utils.calibration import CalibrationWrangler
@@ -127,7 +127,7 @@ class MyRobot(wpilib.TimedRobot):
             ]
             for tf in tfs:
                 obs = PointObstacle(location=(ct+tf), strength=0.7)
-                self.autodrive.rfp.add_obstcale_observaton(obs)
+                self.autodrive.rfp.addObstacleObservation(obs)
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())
 

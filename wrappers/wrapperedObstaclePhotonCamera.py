@@ -15,23 +15,33 @@ class CameraObstacleObservation:
 
 MIN_AREA=10.0 #idk tune this if we are reacting to small targets
 
-def calculateDistanceToTargetMeters(
+def _calculateDistanceToTargetMeters(
         cameraHeightMeters:float,
         targetHeightMeters:float,
         cameraPitchRadians:float,
         targetPitchRadians:float):
+    """
+    Utility method to calculate the distance to the target from 2d targeting information
+    using right triangles, the assumption obstacles are on the ground, and the geometry
+    of where the camera is mounted on the robot.
+    """
     return (targetHeightMeters - cameraHeightMeters) / math.tan(cameraPitchRadians + targetPitchRadians)
 
 
-def estimateCameraToTargetTranslation(targetDistanceMeters:float, yaw:Rotation2d):
+def _estimateCameraToTargetTranslation(targetDistanceMeters:float, yaw:Rotation2d):
+        """
+        Utility to generate a Translation2d based on 
+        """
         return Translation2d(
                 yaw.cos() * targetDistanceMeters, yaw.sin() * targetDistanceMeters)
 
-# Wrappers photonvision to:
-# 1 - resolve issues with target ambiguity (two possible poses for each observation)
-# 2 - Convert pose estimates to the field
-# 3 - Handle recording latency of when the image was actually seen
 class WrapperedObstaclePhotonCamera:
+    """
+    Wrappers photonvision to:
+    1 - resolve issues with target ambiguity (two possible poses for each observation)
+    2 - Convert pose estimates to the field
+    3 - Handle recording latency of when the image was actually seen
+    """
     def __init__(self, camName, robotToCam:Transform3d):
         setVersionCheckEnabled(False)
 
@@ -77,13 +87,13 @@ class WrapperedObstaclePhotonCamera:
                 # Use algorithm described at 
                 # https://docs.limelightvision.io/docs/docs-limelight/tutorials/tutorial-estimating-distance
                 # to estimate distance from the camera to the target.
-                dist = calculateDistanceToTargetMeters(
+                dist = _calculateDistanceToTargetMeters(
                     self.robotToCam.translation().Z(),
                     0.05, # Assume the average bumper starts 5cm off the ground
                     self.robotToCam.rotation().Y(), # Pitch is rotation about the Y axis
                     degreesToRadians(target.getPitch())
                 )
-                camToObstacle = estimateCameraToTargetTranslation(
+                camToObstacle = _estimateCameraToTargetTranslation(
                     dist,
                     Rotation2d.fromDegrees(target.getYaw())
                 )

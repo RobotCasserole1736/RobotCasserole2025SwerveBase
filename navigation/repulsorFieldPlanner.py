@@ -6,7 +6,7 @@ from utils.signalLogging import log
 from drivetrain.drivetrainCommand import DrivetrainCommand
 
 from navigation.navForce import Force
-from navigation.obstacles import HorizontalObstacle, Obstacle, PointObstacle, VerticalObstacle
+from navigation.forceGenerators import HorizontalObstacle, ForceGenerator, PointObstacle, VerticalObstacle
 from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
 # Relative strength of how hard the goal pulls the robot toward it
@@ -19,7 +19,7 @@ MAX_OBSTACLES = 20
 
 # Rate at which transient obstacles decay in strength
 # Bigger numbers here make transient obstacles disappear faster
-TRANSIENT_OBS_DECAY_PER_LOOP = 0.1
+TRANSIENT_OBS_DECAY_PER_LOOP = 0.01
 
 # Obstacles come in two main flavors: Fixed and Transient.
 # Transient obstacles decay and disappear over time. They are things like other robots, or maybe gamepieces we don't want to drive through.
@@ -46,9 +46,6 @@ R_WALL.setForceInverted(True)
 
 WALLS = [B_WALL, T_WALL, L_WALL, R_WALL]
 
-# Happy Constants for the goal poses we may want to drive to
-GOAL_PICKUP = Pose2d.fromFeet(40,5,Rotation2d.fromDegrees(0.0))
-GOAL_SPEAKER = Pose2d.fromFeet(3,20,Rotation2d.fromDegrees(180.0))
 
 # Usually, the path planner assumes we traverse the path at a fixed velocity
 # However, near the goal, we'd like to slow down. This map defines how we ramp down
@@ -89,10 +86,10 @@ class RepulsorFieldPlanner:
     Finally, the planner will recommend a step of fixed size, in the direction the net force pushes on.
     """
     def __init__(self):
-        self.fixedObstacles:list[Obstacle] = []
+        self.fixedObstacles:list[ForceGenerator] = []
         self.fixedObstacles.extend(FIELD_OBSTACLES_2024)
         self.fixedObstacles.extend(WALLS)
-        self.transientObstcales:list[Obstacle] = []
+        self.transientObstcales:list[ForceGenerator] = []
         self.distToGo:float = 0.0
         self.goal:Pose2d|None = None
         self.lookaheadTraj:list[Pose2d] = []
@@ -105,7 +102,7 @@ class RepulsorFieldPlanner:
         """
         self.goal = goal
 
-    def add_obstcale_observaton(self, obs:Obstacle):
+    def addObstacleObservation(self, obs:ForceGenerator):
         """
         Call this to report a new, transient obstacle observed on the field.
         """
@@ -127,7 +124,7 @@ class RepulsorFieldPlanner:
             # no goal, no force
             return Force()
 
-    def _decay_observations(self):
+    def _decayObservations(self):
         """
         Transient obstacles decay in strength over time. 
         This function decays the obstacle's strength, and removes obstacles which have zero strength.

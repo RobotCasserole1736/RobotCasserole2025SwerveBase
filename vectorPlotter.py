@@ -2,7 +2,8 @@
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-from navigation.repulsorFieldPlanner import RepulsorFieldPlanner, GOAL_PICKUP, GOAL_SPEAKER
+from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
+from navigation.navConstants import GOAL_PICKUP, GOAL_SPEAKER
 from wpimath.geometry import Translation2d
 import matplotlib.pyplot as plt
 import numpy as np

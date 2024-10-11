@@ -1,10 +1,13 @@
 import math
 from wpimath.geometry import Translation2d
 
-from navigation.navForce import Force, _logistic_func
+from navigation.navForce import Force, logisticFunc
 
-# Generic and specifc types of obstacles that repel a robot
-class Obstacle:
+class ForceGenerator:
+    """
+    Generic, common class for all objects that generate forces for pathplanning on the field.
+    Usually you should be using a specific type of force object, not this generic one
+    """
     def __init__(self, strength:float=1.0, radius:float = 0.25):
         self.strength = strength
         self.forceIsPositive = True
@@ -18,27 +21,47 @@ class Obstacle:
         self.fieldSteepness = 3.5
 
     def setForceInverted(self, isInverted)->None:
+        """
+        Invert the force direction. 
+        """
         self.forceIsPositive = not isInverted
 
     def getForceAtPosition(self, position:Translation2d)->Force:
+        """
+        Abstract implementation that assumes the object has no force. 
+        Specific object types should override this
+        """
         return Force()
     
     def _distToForceMag(self, dist:float)->float:
+        """
+        Common method for converting a distance from the force object into a force strength
+        We're using the logistic function here, which (while not physically plaussable) has some
+        nice properties about getting bigger near the obstacle, while further objects do not have much
+        (or any) influence on the robot.
+        """
         dist = abs(dist)
-        #Sigmoid shape
-        forceMag = _logistic_func(-1.0 * dist, self.strength, self.fieldSteepness, -self.radius)
+        forceMag = logisticFunc(-1.0 * dist, self.strength, self.fieldSteepness, -self.radius)
         if(not self.forceIsPositive):
             forceMag *= -1.0
         return forceMag
     def getDist(self, position:Translation2d)->float:
+        """
+        Returns the distance (in meters) between the object and a given position
+        """
         return float('inf')
     def getTelemTrans(self)->list[Translation2d]:
+        """
+        return all x/y positions associated with this field force generating object
+        """
         return []
 
 
-# A point obstacle is defined as round, centered at a specific point, with a specific radius
-# It pushes the robot away radially outward from its center
-class PointObstacle(Obstacle):
+class PointObstacle(ForceGenerator):
+    """
+    A point obstacle is defined as round, centered at a specific point, with a specific radius
+    It pushes the robot away radially outward from its center
+    """
     def __init__(self, location:Translation2d, strength:float=1.0, radius:float = 0.3):
         self.location = location
         super().__init__(strength,radius)
@@ -59,10 +82,13 @@ class PointObstacle(Obstacle):
         return [self.location]
 
 
-# Linear obstacles are infinite lines at a specific coordinate
-# They push the robot away along a perpendicular direction
-# with the specific direction determined by forceIsPositive
-class HorizontalObstacle(Obstacle):
+class HorizontalObstacle(ForceGenerator):
+    """
+    Linear obstacles are infinite lines at a specific coordinate
+    They push the robot away along a perpendicular direction
+    with the specific direction determined by the force inversion.
+    The Horizontal Obstacle exists parallel to the X axis, at a specific Y coordinate, and pushes parallel to the Y axis.
+    """
     def __init__(self, y:float, strength:float=1.0, radius:float = 0.5):
         self.y=y
         super().__init__(strength,radius)
@@ -77,7 +103,13 @@ class HorizontalObstacle(Obstacle):
     def getTelemTrans(self) -> list[Translation2d]:
         return []
         
-class VerticalObstacle(Obstacle):
+class VerticalObstacle(ForceGenerator):
+    """
+    Linear obstacles are infinite lines at a specific coordinate
+    They push the robot away along a perpendicular direction
+    with the specific direction determined by the force inversion.
+    The Vertical Obstacle exists parallel to the Y axis, at a specific X coordinate, and pushes parallel to the X axis.
+    """
     def __init__(self, x:float, strength:float=1.0, radius:float = 0.5):
         self.x=x
         super().__init__(strength,radius)
@@ -88,8 +120,10 @@ class VerticalObstacle(Obstacle):
     def getDist(self, position: Translation2d) -> float:
         return abs(position.x - self.x)
 
-# Describes a field force that exists along a line segment with a start and end point
-class LinearObstacle(Obstacle):
+class LinearForceGenerator(ForceGenerator):
+    """
+    A linear force generator creates forces based on the relative position of the robot to a specific line segment
+    """
     def __init__(self, start:Translation2d, end:Translation2d, strength:float=0.75, radius:float = 0.4):
         self.start = start
         self.end = end
@@ -123,9 +157,11 @@ class LinearObstacle(Obstacle):
     def getDist(self, position: Translation2d) -> float:
         return self._shortestTransToSegment(position).norm()
 
-# Field formation that pushes the robot toward and along a line between start/end
-class Lane(LinearObstacle):
-
+class Lane(LinearForceGenerator):
+    """
+    A lane is an attractor - it creates a field force that pulls robots toward and along it, "ejecting" them out the far end.
+    It helps as a "hint" when the robot needs to navigate in a specific way around obstacles, which is not necessarily straight toward the goal.
+    """
     def getForceAtPosition(self, position: Translation2d) -> Force:
         toSeg = self._shortestTransToSegment(position)
         toSegUnit = toSeg/toSeg.norm()
@@ -143,9 +179,12 @@ class Lane(LinearObstacle):
 
         return Force(unitX*forceMag, unitY*forceMag)
     
-# Field formation that pushes the robot uniformly away from the line
-class Wall(LinearObstacle):
 
+class Wall(LinearForceGenerator):
+    """
+    Walls obstacles are finite lines between specific coordinates
+    They push the robot away along a perpendicular direction.
+    """
     def getForceAtPosition(self, position: Translation2d) -> Force:
         toSeg = self._shortestTransToSegment(position)
         toSegUnit = toSeg/toSeg.norm()

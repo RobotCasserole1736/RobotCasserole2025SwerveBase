@@ -2,13 +2,19 @@
 from wrappers.wrapperedObstaclePhotonCamera import WrapperedObstaclePhotonCamera
 from drivetrain.drivetrainPhysical import ROBOT_TO_FRONT_CAM
 from wpimath.geometry import Pose2d
-from navigation.obstacles import Obstacle, PointObstacle
+from navigation.forceGenerators import ForceGenerator, PointObstacle
 
 class ObstacleDetector():
+    """
+    Class to use a PhotonVision-equipped coprocoessor and camera to deduce the location of obstacles on the field and report them
+    """
     def __init__(self):
         self.frontCam = WrapperedObstaclePhotonCamera("FRONT_CAM", ROBOT_TO_FRONT_CAM)
 
-    def getObstacles(self, curPose:Pose2d) -> list['Obstacle']:
+    def getObstacles(self, curPose:Pose2d) -> list['ForceGenerator']:
+        """
+        Returns the currently observed obstacles
+        """
         retList = []
 
         self.frontCam.update()

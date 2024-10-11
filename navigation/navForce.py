@@ -5,13 +5,19 @@ from dataclasses import dataclass
 import math
 
 
-def _logistic_func(x, L, k, x0):
-    """Logistic function."""
+def logisticFunc(x, L, k, x0):
+    """
+    Implements the Logistic function.
+    https://en.wikipedia.org/wiki/Logistic_function
+    This function is nice due to being exactly 0 at one side, 1.0 at the other, and a smooth transition between the two
+    """
     return L / (1 + math.exp(-k * (x - x0)))
 
-# Utility class for representing a force vector
 @dataclass
 class Force:
+    """
+    Simple class to represent a force in a 2d plane
+    """
     x:float=0
     y:float=0
     def __add__(self, other):
