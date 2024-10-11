@@ -9,8 +9,6 @@ from navigation.navForce import Force
 from navigation.obstacles import HorizontalObstacle, Obstacle, PointObstacle, VerticalObstacle
 from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 
-
-
 # Relative strength of how hard the goal pulls the robot toward it
 # Too big and the robot will be pulled through obstacles
 # Too small and the robot will get stuck on obstacles ("local minima")
@@ -58,12 +56,16 @@ GOAL_SLOW_DOWN_MAP = MapLookup2D([
     (0.0, 0.0)
 ])
 
-# These define how far in advance we attempt to plan for telemetry and stuck-detection purposes
+# These define how far in advance we attempt to plan for telemetry purposes
 # Increasing the distance causes us to look further ahead
-TELEM_LOOKAHEAD_DIST_M = 3.0
+LOOKAHEAD_DIST_M = 1.5
 # Increasing the number of steps increases the accuracy of our look-ahead prediction
 # but also increases CPU load on the RIO.
-TELEM_LOOKAHEAD_STEPS = 7
+LOOKAHEAD_STEPS = 4
+LOOKAHEAD_STEP_SIZE = LOOKAHEAD_DIST_M/LOOKAHEAD_STEPS
+
+# If the lookahead routine's end poit is within this, we declare ourselves stuck.
+STUCK_DIST = LOOKAHEAD_DIST_M/4
 
 class RepulsorFieldPlanner:
     """
@@ -86,6 +88,7 @@ class RepulsorFieldPlanner:
         self.transientObstcales:list[Obstacle] = []
         self.distToGo:float = 0.0
         self.goal:Pose2d|None = None
+        self.lookaheadTraj:list[Pose2d] = []
 
     def setGoal(self, goal:Pose2d|None):
         """
@@ -117,7 +120,7 @@ class RepulsorFieldPlanner:
             # no goal, no force
             return Force()
 
-    def decay_observations(self):
+    def _decay_observations(self):
         """
         Transient obstacles decay in strength over time. 
         This function decays the obstacle's strength, and removes obstacles which have zero strength.
@@ -147,6 +150,19 @@ class RepulsorFieldPlanner:
 
         return retArr
     
+    def isStuck(self) -> bool:
+        """
+        Based on current lookahead trajectory, see if we expect to make progress in the near future,
+        or if we're stuck in ... basically ... the same spot. IE, at a local minima
+        """
+        if(len(self.lookaheadTraj) > 3 and self.goal is not None):
+            start = self.lookaheadTraj[0]
+            end = self.lookaheadTraj[-1]
+            dist = (end-start).translation().norm()
+            distToGoal = (end - self.goal).translation().norm()
+            return dist < STUCK_DIST and distToGoal > LOOKAHEAD_DIST_M * 2
+        else:
+            return False
     
     def atGoal(self, trans:Translation2d)->bool:
         """
@@ -157,7 +173,7 @@ class RepulsorFieldPlanner:
         else:
             return (self.goal.translation() - trans).norm() < GOAL_MARGIN_M
 
-    def getForceAtTrans(self, trans:Translation2d)->Force:
+    def _getForceAtTrans(self, trans:Translation2d)->Force:
         """
         Calculates the total force at a given X/Y point on the field.
         This is the sum of:
@@ -181,8 +197,12 @@ class RepulsorFieldPlanner:
 
         return netForce
     
+    def update(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
+        curCmd = self._getCmd(curPose, stepSize_m)
+        self._doLookahead(curPose)
+        return curCmd
 
-    def getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
+    def _getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
         """
         Given a starting pose, and a maximum step size to take, produce a drivetrain command which moves the robot in the best direction
         """
@@ -198,13 +218,22 @@ class RepulsorFieldPlanner:
                 # Slow down when we're near the goal
                 slowFactor = GOAL_SLOW_DOWN_MAP.lookup(self.distToGo)
 
-                netForce = self.getForceAtTrans(curPose.translation())
 
-                # Calculate a substep in the direction of the force
-                step = Translation2d(stepSize_m*netForce.unitX(), stepSize_m*netForce.unitY()) 
+                nextTrans = curTrans
 
-                # Take that substep
-                nextTrans = curTrans + step
+                for _ in range(4):
+
+                    if (nextTrans - curTrans).norm() >= stepSize_m:
+                        break
+
+                    netForce = self._getForceAtTrans(nextTrans)
+
+                    # Calculate a substep in the direction of the force
+                    step = Translation2d(stepSize_m*netForce.unitX()*0.5, stepSize_m*netForce.unitY()*0.5) 
+
+                    # Take that step
+                    nextTrans += step
+
 
                 # Assemble velocity commands based on the step we took
                 retVal.velX = (nextTrans - curTrans).X()/0.02 * slowFactor
@@ -213,28 +242,41 @@ class RepulsorFieldPlanner:
                 retVal.desPose = Pose2d(nextTrans, self.goal.rotation())
         else:
             self.distToGo = 0.0
-
+        
         return retVal
     
-    def updateTelemetry(self, curPose:Pose2d) -> list[Pose2d]:
+    def _doLookahead(self, curPose):
         """
-        Perform all telemetry-related tasks.
-        This includes logging data, and performing the lookahead operation
-        Returns the list of Pose2D's that are the result of the lookahead operation
+        Perform the lookahead operation - Plan ahead out to a maximum distance, or until we detect we are stuck
         """
-        telemTraj = []
-        stepsize = TELEM_LOOKAHEAD_DIST_M/TELEM_LOOKAHEAD_STEPS
+        self.lookaheadTraj = []
         if(self.goal is not None):
             cp = curPose
-            for _ in range(0,TELEM_LOOKAHEAD_STEPS):
-                telemTraj.append(cp)
-                tmp = self.getCmd(cp, stepsize)
+            self.lookaheadTraj.append(cp)
+
+            for _ in range(0,LOOKAHEAD_STEPS):
+                tmp = self._getCmd(cp, LOOKAHEAD_STEP_SIZE)
                 if(tmp.desPose is not None):
                     cp = tmp.desPose
+                    self.lookaheadTraj.append(cp)
+
+                    if((cp - self.goal).translation().norm() < LOOKAHEAD_STEP_SIZE):
+                        # At the goal, no need to keep looking ahead
+                        break
                 else:
+                    # Weird, no pose given back, give up.
                     break
 
+    def updateTelemetry(self) -> list[Pose2d]:
+        """
+        Perform all telemetry-related tasks.
+        This includes logging data
+        Returns the list of Pose2D's that are the result of the lookahead operation
+        """
         log("PotentialField Num Obstacles", len(self.fixedObstacles) + len(self.transientObstcales))
         log("PotentialField Path Active", self.goal is not None)
         log("PotentialField DistToGo", self.distToGo, "m")
-        return telemTraj
+        if(self.goal is not None):
+            return self.lookaheadTraj
+        else:
+            return []
