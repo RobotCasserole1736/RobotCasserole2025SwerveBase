@@ -1,6 +1,6 @@
 import math
 from wpimath.geometry import Translation2d
-
+from navigation.navConstants import FIELD_X_M, FIELD_Y_M
 from navigation.navForce import Force, logisticFunc
 
 class ForceGenerator:
@@ -101,7 +101,10 @@ class HorizontalObstacle(ForceGenerator):
         return abs(position.y - self.y)
     
     def getTelemTrans(self) -> list[Translation2d]:
-        return []
+        return [
+            Translation2d(0,self.y),
+            Translation2d(FIELD_X_M,self.y),
+        ]
         
 class VerticalObstacle(ForceGenerator):
     """
@@ -119,6 +122,12 @@ class VerticalObstacle(ForceGenerator):
 
     def getDist(self, position: Translation2d) -> float:
         return abs(position.x - self.x)
+    
+    def getTelemTrans(self) -> list[Translation2d]:
+        return [
+            Translation2d(self.x,0),
+            Translation2d(self.x,FIELD_Y_M),
+        ]
 
 class LinearForceGenerator(ForceGenerator):
     """
@@ -156,6 +165,12 @@ class LinearForceGenerator(ForceGenerator):
 
     def getDist(self, position: Translation2d) -> float:
         return self._shortestTransToSegment(position).norm()
+
+    def getTelemTrans(self) -> list[Translation2d]:
+        return [
+            self.start,
+            self.end
+        ]
 
 class Lane(LinearForceGenerator):
     """

@@ -141,10 +141,6 @@ class RepulsorFieldPlanner:
         """
         Return a list of translations (x/y points), representing the current obstacles
         Just for telemetry purposes now
-        
-        TODO: This really only works well for point obstacles now. 
-        We'll need to consider in the future how to do this for linear obstacles
-        Perhaps a list of translation pairs (start/end) ?
         """
         retArr = []
         for obstacle in self.fixedObstacles:

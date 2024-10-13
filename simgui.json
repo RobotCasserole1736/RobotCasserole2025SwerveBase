@@ -20,6 +20,11 @@
         "visible": false
       }
     },
+    "PWM Outputs": {
+      "window": {
+        "visible": true
+      }
+    },
     "Timing": {
       "window": {
         "visible": false
@@ -96,7 +101,9 @@
             255.0
           ],
           "length": 0.20000000298023224,
-          "weight": 6.0,
+          "selectable": false,
+          "style": "Line",
+          "weight": 8.0,
           "width": 0.20000000298023224
         },
         "height": 8.210550308227539,
