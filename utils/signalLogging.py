@@ -17,14 +17,14 @@ class SignalWrangler(metaclass=Singleton):
         self.publishedSigDict = {}
         self.fileLogging = False
         self.time = int(0)
-
-        if ExtDriveManager().isConnected():
-            wpilib.DataLogManager.start(dir=ExtDriveManager().getLogStoragePath())
-            wpilib.DataLogManager.logNetworkTables(
-                False
-            )  # We have a lot of things in NT that don't need to be logged
-            self.log = wpilib.DataLogManager.getLog()
-            self.fileLogging = True
+    
+        #if ExtDriveManager().isConnected():
+        #    wpilib.DataLogManager.start(dir=ExtDriveManager().getLogStoragePath())
+        #    wpilib.DataLogManager.logNetworkTables(
+        #        False
+        #    )  # We have a lot of things in NT that don't need to be logged
+        #    self.log = wpilib.DataLogManager.getLog()
+        #    self.fileLogging = True
 
     def markLoopStart(self):
         self.time = nt._now()  # pylint: disable=W0212

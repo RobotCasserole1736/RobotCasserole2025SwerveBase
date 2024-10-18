@@ -293,9 +293,9 @@ class RepulsorFieldPlanner:
         This includes logging data
         Returns the list of Pose2D's that are the result of the lookahead operation
         """
-        log("PotentialField Num Obstacles", len(self.fixedObstacles) + len(self.transientObstcales))
-        log("PotentialField Path Active", self.goal is not None)
-        log("PotentialField DistToGo", self.distToGo, "m")
+        #log("PotentialField Num Obstacles", len(self.fixedObstacles) + len(self.transientObstcales))
+        #log("PotentialField Path Active", self.goal is not None)
+        #log("PotentialField DistToGo", self.distToGo, "m")
         if(self.goal is not None):
             return self.lookaheadTraj
         else:

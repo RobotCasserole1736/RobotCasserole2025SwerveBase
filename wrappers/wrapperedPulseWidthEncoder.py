@@ -69,9 +69,9 @@ class WrapperedPulseWidthEncoder:
 
             self.curAngleRad = wrapAngleRad(rawAngle - self.mountOffsetCal.get())
 
-        log(f"{self.name}_freq", freq, "Hz")
-        log(f"{self.name}_pulseTime", pulseTime, "sec")
-        log(f"{self.name}_angle", self.curAngleRad, "rad")
+        #log(f"{self.name}_freq", freq, "Hz")
+        #log(f"{self.name}_pulseTime", pulseTime, "sec")
+        #log(f"{self.name}_angle", self.curAngleRad, "rad")
 
     def getAngleRad(self):
         return self.curAngleRad

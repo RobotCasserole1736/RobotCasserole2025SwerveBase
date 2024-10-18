@@ -7,10 +7,10 @@ import time
 
 
 _StatusFramePeriodConfigs = [
-    [CANSparkMax.PeriodicFrame.kStatus0, 20],  # Status 0 = Motor output and Faults
+    [CANSparkMax.PeriodicFrame.kStatus0, 200],  # Status 0 = Motor output and Faults
     [
         CANSparkMax.PeriodicFrame.kStatus1,
-        20,
+        100,
     ],  # Status 1 = Motor velocity & electrical data
     [CANSparkMax.PeriodicFrame.kStatus2, 20],  # Status 2 = Motor Position
     [CANSparkMax.PeriodicFrame.kStatus3, 32767],  # Status 3 = Analog Sensor Input
@@ -66,7 +66,7 @@ class WrapperedSparkMax:
                 self.configSuccess = True
             time.sleep(0.1)
         
-        self.configSuccess = True #Debug code - this may/will cause problems
+        #self.configSuccess = True #Debug code - this may/will cause problems
         self.disconFault.set(not self.configSuccess)
 
     def setInverted(self, isInverted):
@@ -89,8 +89,8 @@ class WrapperedSparkMax:
         self.simActPos = posCmd
         posCmdRev = rad2Rev(posCmd)
 
-        log(self.name + "_desPos", posCmd, "Rad")
-        log(self.name + "_cmdVoltage", arbFF, "V")
+        #log(self.name + "_desPos", posCmd, "Rad")
+        #log(self.name + "_cmdVoltage", arbFF, "V")
 
         if self.configSuccess:
             err = self.pidCtrl.setReference(
@@ -103,7 +103,7 @@ class WrapperedSparkMax:
 
             self.disconFault.set(err != REVLibError.kOk)
 
-            log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
+            #log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
 
 
     def setVelCmd(self, velCmd, arbFF=0.0):
@@ -115,8 +115,8 @@ class WrapperedSparkMax:
         """
         velCmdRPM = radPerSec2RPM(velCmd)
 
-        log(self.name + "_desVel", velCmdRPM, "RPM")
-        log(self.name + "_cmdVoltage", arbFF, "V")
+        #log(self.name + "_desVel", velCmdRPM, "RPM")
+        #log(self.name + "_cmdVoltage", arbFF, "V")
 
         if self.configSuccess:
             err = self.pidCtrl.setReference(
@@ -127,14 +127,14 @@ class WrapperedSparkMax:
                 SparkMaxPIDController.ArbFFUnits.kVoltage,
             )
             self.disconFault.set(err != REVLibError.kOk)
-            log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
+            #log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
 
     def setVoltage(self, outputVoltageVolts):
-        log(self.name + "_cmdVoltage", outputVoltageVolts, "V")
+        #log(self.name + "_cmdVoltage", outputVoltageVolts, "V")
         if self.configSuccess:
-            err = self.ctrl.setVoltage(outputVoltageVolts)
-            #self.disconFault.set(err != REVLibError.kOk) This is commented out for debugging purposes. 
-            log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
+            self.ctrl.setVoltage(outputVoltageVolts)
+            #log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
+            #log(self.name + "_appliedOutput", self.ctrl.getAppliedOutput(), "%")
 
     def getMotorPositionRad(self):
         if(TimedRobot.isSimulation()):
@@ -144,7 +144,7 @@ class WrapperedSparkMax:
                 pos = rev2Rad(self.encoder.getPosition())
             else:
                 pos = 0
-        log(self.name + "_motorActPos", pos, "rad")
+        #log(self.name + "_motorActPos", pos, "rad")
         return pos
 
     def getMotorVelocityRadPerSec(self):
@@ -152,5 +152,5 @@ class WrapperedSparkMax:
             vel = self.encoder.getVelocity()
         else:
             vel = 0
-        log(self.name + "_motorActVel", vel, "RPM")
+        #log(self.name + "_motorActVel", vel, "RPM")
         return RPM2RadPerSec(vel)

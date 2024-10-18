@@ -79,13 +79,13 @@ class DriverInterface:
             self.createObstacle = False
 
 
-        log("DI FwdRev Cmd", self.velXCmd, "mps")
-        log("DI Strafe Cmd", self.velYCmd, "mps")
-        log("DI Rot Cmd", self.velTCmd, "radps")
-        log("DI connective fault", self.ctrl.isConnected(), "bool")
-        log("DI gyroResetCmd", self.gyroResetCmd, "bool")
-        log("DI navToSpeaker", self.navToSpeaker, "bool")
-        log("DI navToPickup", self.navToPickup, "bool")
+        #log("DI FwdRev Cmd", self.velXCmd, "mps")
+        #log("DI Strafe Cmd", self.velYCmd, "mps")
+        #log("DI Rot Cmd", self.velTCmd, "radps")
+        #log("DI connective fault", self.ctrl.isConnected(), "bool")
+        #log("DI gyroResetCmd", self.gyroResetCmd, "bool")
+        #log("DI navToSpeaker", self.navToSpeaker, "bool")
+        #log("DI navToPickup", self.navToPickup, "bool")
 
     def getCmd(self):
         retval = DrivetrainCommand()

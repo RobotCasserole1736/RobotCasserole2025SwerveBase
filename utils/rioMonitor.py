@@ -73,15 +73,15 @@ class RIOMonitor:
 
     def _updateCANStats(self):
         status = RobotController.getCANStatus()
-        log("RIO CAN Bus Usage", status.percentBusUtilization, "pct")
-        log(
-            "RIO CAN Bus Err Count",
-            status.txFullCount + status.receiveErrorCount + status.transmitErrorCount,
-            "count",
-        )
+        #log("RIO CAN Bus Usage", status.percentBusUtilization, "pct")
+        #log(
+        #    "RIO CAN Bus Err Count",
+        #    status.txFullCount + status.receiveErrorCount + status.transmitErrorCount,
+        #    "count",
+        #)
 
     def _updateVoltages(self):
-        log("RIO Supply Voltage", RobotController.getInputVoltage(), "V")
+        #log("RIO Supply Voltage", RobotController.getInputVoltage(), "V")
         if not RobotController.isBrownedOut():
             self.railFault3p3v.set(not RobotController.getEnabled3V3())
             self.railFault5v.set(not RobotController.getEnabled5V())

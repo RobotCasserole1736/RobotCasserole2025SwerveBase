@@ -6,7 +6,7 @@ from wpimath.filter import Debouncer
 BLINK = -1.0
 GREEN = 0.35
 RED = 0.03
-BLUE = 0.85
+BLUE = 0.75
 OFF = 0.0
 
 class LEDControl(metaclass=Singleton):

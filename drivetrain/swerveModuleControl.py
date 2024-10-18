@@ -175,12 +175,10 @@ class SwerveModuleControl:
             self.actualPosition.angle = self.actualState.angle
 
         # Optimize our incoming swerve command to minimize motion
-        #self.optimizedDesiredState = SwerveModuleState.optimize(
-        #    self.desiredState, self.actualState.angle
-        #)
-        # Skip optimization for now
-        self.optimizedDesiredState = self.desiredState
-
+        self.optimizedDesiredState = SwerveModuleState.optimize(
+            self.desiredState, self.actualState.angle
+        )
+        
         # Use a PID controller to calculate the voltage for the azimuth motor
         self.azmthCtrl.setSetpoint(self.optimizedDesiredState.angle.degrees())  # type: ignore
         self.azmthVoltage = self.azmthCtrl.calculate(self.actualState.angle.degrees())

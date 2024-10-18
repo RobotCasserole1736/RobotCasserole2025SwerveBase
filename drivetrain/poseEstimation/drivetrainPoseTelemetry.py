@@ -86,13 +86,6 @@ class DrivetrainPoseTelemetry:
         self.rightCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_RIGHT_CAM))
         self.frontCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_FRONT_CAM))
 
-        log("DT Pose Est X", metersToFeet(estPose.X()), "ft")
-        log("DT Pose Est Y", metersToFeet(estPose.Y()), "ft")
-        log("DT Pose Est T", estPose.rotation().degrees(), "deg")
-        log("DT Pose Des X", metersToFeet(self.desPose.X()), "ft")
-        log("DT Pose Des Y", metersToFeet(self.desPose.Y()), "ft")
-        log("DT Pose Des T", self.desPose.rotation().degrees(), "deg")
-
     def setWPITrajectory(self, trajIn):
         """Display a specific trajectory on the robot Field2d
 

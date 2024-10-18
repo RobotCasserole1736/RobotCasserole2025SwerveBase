@@ -1,4 +1,5 @@
 import sys
+import cProfile, pstats
 import wpilib
 from dashboard import Dashboard
 from drivetrain.controlStrategies.autoDrive import AutoDrive
@@ -19,7 +20,7 @@ from utils.powerMonitor import PowerMonitor
 from webserver.webserver import Webserver
 from AutoSequencerV2.autoSequencer import AutoSequencer
 from utils.powerMonitor import PowerMonitor
-from wpimath.geometry import Translation2d
+from wpimath.geometry import Translation2d, Pose2d, Rotation2d
 
 class MyRobot(wpilib.TimedRobot):
     #########################################################
@@ -57,6 +58,8 @@ class MyRobot(wpilib.TimedRobot):
         self.addPeriodic(CalibrationWrangler().update, 0.5, 0.0)
         self.addPeriodic(FaultWrangler().update, 0.2, 0.0)
 
+        self.autoHasRun = False
+
 
     def robotPeriodic(self):
         self.stt.start()
@@ -86,6 +89,9 @@ class MyRobot(wpilib.TimedRobot):
         # Use the autonomous rouines starting pose to init the pose estimator
         self.driveTrain.poseEst.setKnownPose(self.autoSequencer.getStartingPose())
 
+        # Mark we at least started autonomous
+        self.autoHasRun = True
+
     def autonomousPeriodic(self):
         SignalWrangler().markLoopStart()
 
@@ -102,6 +108,13 @@ class MyRobot(wpilib.TimedRobot):
     def teleopInit(self):
         # clear existing telemetry trajectory
         self.driveTrain.poseEst.telemetry.setWPITrajectory(None)
+
+        # If we're starting teleop but haven't run auto, set a nominal default pose
+        # This is needed because initial pose is usually set by the autonomous routine
+        if not self.autoHasRun:
+            self.driveTrain.poseEst.setKnownPose(
+                Pose2d(1.0, 1.0, Rotation2d(0.0))
+            )
 
 
     def teleopPeriodic(self):
@@ -170,3 +183,4 @@ def remoteRIODebugSupport():
         else:
             debugpy.listen(("0.0.0.0", 5678))
             debugpy.wait_for_client()
+
