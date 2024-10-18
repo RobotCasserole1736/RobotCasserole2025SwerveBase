@@ -46,7 +46,7 @@ class SwerveModuleControl:
             azmthEncoderPortIdx (int): RIO Port for the azimuth absolute encoder for this module
             azmthOffset (float): Mounting offset of the azimuth encoder in Radians.
             invertWheel (bool): Inverts the drive direction of the wheel - needed since left/right sides are mirrored
-            invertWheel (bool): Inverts the steering direction of the wheel - needed if motor is mounted upside
+            invertAzmth (bool): Inverts the steering direction of the wheel - needed if motor is mounted upside
         """
         self.wheelMotor = WrapperedSparkMax(
             wheelMotorCanID, moduleName + "_wheel", False
@@ -175,9 +175,11 @@ class SwerveModuleControl:
             self.actualPosition.angle = self.actualState.angle
 
         # Optimize our incoming swerve command to minimize motion
-        self.optimizedDesiredState = SwerveModuleState.optimize(
-            self.desiredState, self.actualState.angle
-        )
+        #self.optimizedDesiredState = SwerveModuleState.optimize(
+        #    self.desiredState, self.actualState.angle
+        #)
+        # Skip optimization for now
+        self.optimizedDesiredState = self.desiredState
 
         # Use a PID controller to calculate the voltage for the azimuth motor
         self.azmthCtrl.setSetpoint(self.optimizedDesiredState.angle.degrees())  # type: ignore
