@@ -13,7 +13,7 @@ from humanInterface.driverInterface import DriverInterface
 from humanInterface.ledControl import LEDControl
 from navigation.forceGenerators import PointObstacle
 from utils.segmentTimeTracker import SegmentTimeTracker
-from utils.signalLogging import SignalWrangler, log
+from utils.signalLogging import log, addLog, update
 import utils.signalLogging
 from utils.calibration import CalibrationWrangler
 from utils.faults import FaultWrangler
@@ -66,12 +66,11 @@ class MyRobot(wpilib.TimedRobot):
 
     def _testLoggingInit(self):
         for i in range(0,100):
-            log(f"testSig{i}", i)
+            addLog(f"testSig{i}", lambda: self.autoHasRun)
 
     def _testLoggingMany(self):
-        for _ in range (0,100000):
-            for i in range(0,100):
-                log(f"testSig{i}", i)
+        for _ in range (0,1000):
+            update()
 
 
     def robotPeriodic(self):
@@ -106,16 +105,18 @@ class MyRobot(wpilib.TimedRobot):
         self.autoHasRun = True
 
         # Test only
-        stats = None
+        
         self._testLoggingInit()
         profiler = LineProfiler()
         profiler.add_module(utils.signalLogging)
+        start = wpilib.Timer.getFPGATimestamp()
         profiler.runcall(self._testLoggingMany)
+        end = wpilib.Timer.getFPGATimestamp()
         profiler.print_stats()
+        print(f"TotalTime: {end-start} sec")
 
 
     def autonomousPeriodic(self):
-        SignalWrangler().markLoopStart()
 
         self.autoSequencer.update()
 
@@ -140,8 +141,6 @@ class MyRobot(wpilib.TimedRobot):
 
 
     def teleopPeriodic(self):
-
-        SignalWrangler().markLoopStart()
 
         self.driveTrain.setManualCmd(self.dInt.getCmd())
 
@@ -172,7 +171,6 @@ class MyRobot(wpilib.TimedRobot):
     #########################################################
     ## Disabled-Specific init and update
     def disabledPeriodic(self):
-        SignalWrangler().markLoopStart()
         self.autoSequencer.updateMode()
         Trajectory().trajCtrl.updateCals()
 
@@ -185,8 +183,7 @@ class MyRobot(wpilib.TimedRobot):
         wpilib.LiveWindow.setEnabled(False)
 
     def testPeriodic(self):
-        SignalWrangler().markLoopStart()
-        # Nothing else to do, main update does all the heavy lifting
+        pass
 
     #########################################################
     ## Cleanup

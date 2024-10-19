@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from typing import Callable
 import wpilib
 import ntcore as nt
 import wpiutil.log as wpilog  # pylint: disable=import-error,no-name-in-module
@@ -8,6 +10,11 @@ from collections import defaultdict
 
 BASE_TABLE = "SmartDashboard"
 
+@dataclass
+class _LoggedVal():
+    valGetter:Callable[[], float]
+    ntPublisher:nt.DoublePublisher
+    filePublisher:wpilog.DoubleLogEntry|None
 
 # Wrangler for coordinating the set of all signals
 class SignalWrangler(metaclass=Singleton):
@@ -16,21 +23,27 @@ class SignalWrangler(metaclass=Singleton):
     def __init__(self):
         # Default to publishing things under Shuffleboard, which makes things more available
         self.table = nt.NetworkTableInstance.getDefault().getTable(BASE_TABLE)
-        self.publishedSigDict = defaultdict()
+        self.loggedValList:list[_LoggedVal] = []
         self.time = int(0)
         self.log = None
     
-        #if ExtDriveManager().isConnected():
-        #    wpilib.DataLogManager.start(dir=ExtDriveManager().getLogStoragePath())
-        #    wpilib.DataLogManager.logNetworkTables(
-        #        False
-        #    )  # We have a lot of things in NT that don't need to be logged
-        #    self.log = wpilib.DataLogManager.getLog()
+        if ExtDriveManager().isConnected():
+            wpilib.DataLogManager.start(dir=ExtDriveManager().getLogStoragePath())
+            wpilib.DataLogManager.logNetworkTables(
+                False
+            )  # We have a lot of things in NT that don't need to be logged
+            self.log = wpilib.DataLogManager.getLog()
 
-    def markLoopStart(self):
-        self.time = nt._now()  # pylint: disable=W0212
+    def update(self):
+        curTime = nt._now()  # pylint: disable=W0212
+        for lv in self.loggedValList:
+            val = lv.valGetter()
+            lv.ntPublisher.set(val, curTime)
+            if(lv.filePublisher is not None):
+                lv.filePublisher.append(val, curTime)
 
-    def _newPublishedVal(self, name, units):
+
+    def newLogVal(self, name:str, valGetter:Callable[[],float], units:str|None):
 
             # Set up NT publishing
             sigTopic = self.table.getDoubleTopic(name)
@@ -50,26 +63,10 @@ class SignalWrangler(metaclass=Singleton):
             else:
                 sigLog = None
 
-            # Remember handles for both
-            sig = (sigPub, sigLog)
-            self.publishedSigDict[name] = sig
-            return sig
+            self.loggedValList.append(
+                _LoggedVal(valGetter,sigPub, sigLog)
+            )
 
-    def publishValue(self, name, value, units):
-        #global sampIdx
-
-        try:
-            sig = self.publishedSigDict[name]
-        except KeyError:
-            sig = self._newPublishedVal(name, units)
-
-        # Publish value to NT
-        ntsig = sig[0]
-        ntsig.set(value, self.time)
-        flsig = sig[1]
-        # Put value to log file
-        if flsig is not None:
-            flsig.append(value, self.time)
 
 
 
@@ -79,9 +76,22 @@ class SignalWrangler(metaclass=Singleton):
 
 _singletonInst = SignalWrangler() # cache a reference
 # Log a new named value
-def log(name, value, units=None):
-    _singletonInst.publishValue(name, value, units)
+def update():
+    _singletonInst.update()
 
+def addLog(alias: str, value_getter: Callable[[], float], units=None) -> None:
+    """
+    Register some value to be loggd
+
+    Parameters:
+    - alias: The name used to identify the log.
+    - value_getter: A function that returns the current value of the log. Lambda is acceptable here.
+    """
+    _singletonInst.newLogVal(alias, value_getter, units)
+
+
+def log(_, __, ___=None):
+    pass # temp till we're done cleaning up
 
 def sigNameToNT4TopicName(name):
     return f"/{BASE_TABLE}/{name}"
