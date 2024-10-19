@@ -69,7 +69,7 @@ class MyRobot(wpilib.TimedRobot):
             log(f"testSig{i}", i)
 
     def _testLoggingMany(self):
-        for _ in range (0,100000):
+        for _ in range (0,1000):
             for i in range(0,100):
                 log(f"testSig{i}", i)
 
@@ -106,12 +106,17 @@ class MyRobot(wpilib.TimedRobot):
         self.autoHasRun = True
 
         # Test only
-        stats = None
         self._testLoggingInit()
         profiler = LineProfiler()
         profiler.add_module(utils.signalLogging)
+        start = wpilib.Timer.getFPGATimestamp()
         profiler.runcall(self._testLoggingMany)
+        end = wpilib.Timer.getFPGATimestamp()
         profiler.print_stats()
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        print(f">>Overall Time: {end-start} sec")
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        sys.exit()
 
 
     def autonomousPeriodic(self):
