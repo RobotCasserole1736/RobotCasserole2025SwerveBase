@@ -1,5 +1,8 @@
+import math
+import random
 import sys
 import cProfile, pstats
+from line_profiler import LineProfiler
 import wpilib
 from dashboard import Dashboard
 from drivetrain.controlStrategies.autoDrive import AutoDrive
@@ -10,7 +13,8 @@ from humanInterface.driverInterface import DriverInterface
 from humanInterface.ledControl import LEDControl
 from navigation.forceGenerators import PointObstacle
 from utils.segmentTimeTracker import SegmentTimeTracker
-from utils.signalLogging import SignalWrangler
+from utils.signalLogging import SignalWrangler, log
+import utils.signalLogging
 from utils.calibration import CalibrationWrangler
 from utils.faults import FaultWrangler
 from utils.crashLogger import CrashLogger
@@ -60,6 +64,15 @@ class MyRobot(wpilib.TimedRobot):
 
         self.autoHasRun = False
 
+    def _testLoggingInit(self):
+        for i in range(0,100):
+            log(f"testSig{i}", i)
+
+    def _testLoggingMany(self):
+        for _ in range (0,100000):
+            for i in range(0,100):
+                log(f"testSig{i}", i)
+
 
     def robotPeriodic(self):
         self.stt.start()
@@ -91,6 +104,15 @@ class MyRobot(wpilib.TimedRobot):
 
         # Mark we at least started autonomous
         self.autoHasRun = True
+
+        # Test only
+        stats = None
+        self._testLoggingInit()
+        profiler = LineProfiler()
+        profiler.add_module(utils.signalLogging)
+        profiler.runcall(self._testLoggingMany)
+        profiler.print_stats()
+
 
     def autonomousPeriodic(self):
         SignalWrangler().markLoopStart()
