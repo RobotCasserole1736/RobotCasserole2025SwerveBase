@@ -2,7 +2,7 @@
 #The constants between practice and main robots may be different. 
 from enum import Enum
 import wpilib
-#from utils.signalLogging import log
+#from utils.signalLogging import addLog
 from utils.singleton import Singleton
 RobotTypes = Enum('RobotTypes', ['Main','Practice','TestBoard'])
 

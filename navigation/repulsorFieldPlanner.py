@@ -1,7 +1,7 @@
 from wpimath.geometry import Pose2d, Translation2d, Rotation2d
 
 from utils.mapLookup2d import MapLookup2D
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
 
@@ -93,6 +93,10 @@ class RepulsorFieldPlanner:
         self.distToGo:float = 0.0
         self.goal:Pose2d|None = None
         self.lookaheadTraj:list[Pose2d] = []
+
+        addLog("PotentialField Num Obstacles", lambda: (len(self.fixedObstacles) + len(self.transientObstcales)))
+        addLog("PotentialField Path Active", lambda: (self.goal is not None))
+        addLog("PotentialField DistToGo", lambda: self.distToGo, "m")
 
     def setGoal(self, goal:Pose2d|None):
         """
@@ -287,15 +291,11 @@ class RepulsorFieldPlanner:
                     # Weird, no pose given back, give up.
                     break
 
-    def updateTelemetry(self) -> list[Pose2d]:
+    def getLookaheadTraj(self) -> list[Pose2d]:
         """
-        Perform all telemetry-related tasks.
-        This includes logging data
-        Returns the list of Pose2D's that are the result of the lookahead operation
+        gets the current list of lookahead poses
         """
-        #log("PotentialField Num Obstacles", len(self.fixedObstacles) + len(self.transientObstcales))
-        #log("PotentialField Path Active", self.goal is not None)
-        #log("PotentialField DistToGo", self.distToGo, "m")
+
         if(self.goal is not None):
             return self.lookaheadTraj
         else:

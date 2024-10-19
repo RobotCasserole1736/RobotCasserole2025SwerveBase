@@ -5,7 +5,7 @@ import subprocess
 from wpilib import RobotController
 from wpilib import RobotBase
 from utils.faults import Fault
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 
 
 # Records faults and runtime metrics for the roboRIO
@@ -26,6 +26,28 @@ class RIOMonitor:
         self.runCmd = True
         self.thread1.start()
         self.thread2.start()
+
+        self.CANBusUsage = 0
+        self.CANErrCount = 0
+        self.memUsagePct = 0
+        self.cpuLoad = 0
+
+        self.intDiskUsage = 0
+        self.extDiskUsage = 0
+
+        addLog("RIO Supply Voltage", RobotController.getInputVoltage, "V")
+        addLog("RIO CAN Bus Usage", lambda: self.CANBusUsage, "pct")
+        addLog(
+            "RIO CAN Bus Err Count",
+             lambda: self.CANErrCount,
+            "count",
+        )
+        addLog("RIO Memory Usage", lambda: self.memUsagePct , "pct")
+        addLog("RIO Internal Disk Usage", lambda: self.intDiskUsage, "pct")
+        addLog(f"RIO USB Disk Usage",lambda: self.extDiskUsage, "pct")
+        addLog("RIO CPU Load",lambda: self.cpuLoad , "pct")
+
+
 
     def stopThreads(self):
         self.runCmd = False
@@ -66,22 +88,18 @@ class RIOMonitor:
 
                         pctUsed = usedBytes / float(usedBytes + availBytes) * 100.0
                         if mountDir == "/":
-                            log("RIO SD Card Disk Usage", pctUsed, "pct")
+                            self.intDiskUsage = pctUsed
                         elif mountDir.startswith("/media"):
-                            mountDir = mountDir.replace("/", "\\")
-                            log(f"RIO USB {mountDir} Disk Usage", pctUsed, "pct")
+                            self.extDiskUsage = pctUsed
 
     def _updateCANStats(self):
         status = RobotController.getCANStatus()
-        #log("RIO CAN Bus Usage", status.percentBusUtilization, "pct")
-        #log(
-        #    "RIO CAN Bus Err Count",
-        #    status.txFullCount + status.receiveErrorCount + status.transmitErrorCount,
-        #    "count",
-        #)
+        self.CANBusUsage = status.percentBusUtilization
+        self.CANErrCount = status.txFullCount + status.receiveErrorCount + status.transmitErrorCount
+
+
 
     def _updateVoltages(self):
-        #log("RIO Supply Voltage", RobotController.getInputVoltage(), "V")
         if not RobotController.isBrownedOut():
             self.railFault3p3v.set(not RobotController.getEnabled3V3())
             self.railFault5v.set(not RobotController.getEnabled5V())
@@ -129,7 +147,7 @@ class RIOMonitor:
 
                 # Calculate and log  the Load Percent as percentage of
                 # total time that we were not idle
-                log("RIO CPU Load", totalInUseTime / totalTime * 100.0, "pct")
+                self.cpuLoad = totalInUseTime / totalTime * 100.0
 
                 # Remember current stats for next time
                 self.prevUserTime = curUserTime
@@ -138,6 +156,7 @@ class RIOMonitor:
                 self.prevIdleTime = curIdleTime
 
     def _updateMemStats(self):
+        self.memUsagePct = -1
         if RobotBase.isReal():
             memTotalStr = None
             memFreeStr = None
@@ -160,5 +179,7 @@ class RIOMonitor:
                     curFreeMem = float(memFreeParts[1])
                 except ValueError:
                     return  # Skip this time if we couldn't parse out values
+                
+                self.memUsagePct = (1.0 - curFreeMem / curTotalMem) * 100.0
 
-                log("RIO Memory Usage", (1.0 - curFreeMem / curTotalMem) * 100.0, "pct")
+

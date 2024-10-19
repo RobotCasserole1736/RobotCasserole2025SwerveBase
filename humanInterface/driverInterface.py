@@ -3,7 +3,7 @@ from drivetrain.drivetrainPhysical import MAX_FWD_REV_SPEED_MPS,MAX_STRAFE_SPEED
 MAX_ROTATE_SPEED_RAD_PER_SEC,MAX_TRANSLATE_ACCEL_MPS2,MAX_ROTATE_ACCEL_RAD_PER_SEC_2
 from utils.allianceTransformUtils import onRed
 from utils.faults import Fault
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 from wpimath import applyDeadband
 from wpimath.filter import SlewRateLimiter
 from wpilib import XboxController
@@ -26,6 +26,13 @@ class DriverInterface:
         self.navToSpeaker = False
         self.navToPickup = False
         self.createObstacle = False
+
+        addLog("DI FwdRev Cmd", lambda: self.velXCmd, "mps")
+        addLog("DI Strafe Cmd", lambda: self.velYCmd, "mps")
+        addLog("DI Rot Cmd", lambda: self.velTCmd, "radps")
+        addLog("DI gyroResetCmd", lambda: self.gyroResetCmd, "bool")
+        addLog("DI navToSpeaker", lambda: self.navToSpeaker, "bool")
+        addLog("DI navToPickup", lambda: self.navToPickup, "bool")
 
     def update(self):
         # value of contoller buttons
@@ -79,13 +86,7 @@ class DriverInterface:
             self.createObstacle = False
 
 
-        #log("DI FwdRev Cmd", self.velXCmd, "mps")
-        #log("DI Strafe Cmd", self.velYCmd, "mps")
-        #log("DI Rot Cmd", self.velTCmd, "radps")
-        #log("DI connective fault", self.ctrl.isConnected(), "bool")
-        #log("DI gyroResetCmd", self.gyroResetCmd, "bool")
-        #log("DI navToSpeaker", self.navToSpeaker, "bool")
-        #log("DI navToPickup", self.navToPickup, "bool")
+
 
     def getCmd(self):
         retval = DrivetrainCommand()

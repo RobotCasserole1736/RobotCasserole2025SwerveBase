@@ -13,7 +13,7 @@ from wrappers.wrapperedSparkMax import WrapperedSparkMax
 from wrappers.wrapperedSRXMagEncoder import WrapperedSRXMagEncoder
 from dashboardWidgets.swerveState import getAzmthDesTopicName, getAzmthActTopicName
 from dashboardWidgets.swerveState import getSpeedDesTopicName, getSpeedActTopicName
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 from utils.units import rad2Deg
 from utils.faults import Fault
 from utils.robotIdentification import RobotIdentification
@@ -74,42 +74,31 @@ class SwerveModuleControl:
 
         self._prevMotorDesSpeed = 0
 
-        self.moduleName = moduleName
 
-        self.serialFault = Fault(f"Serial Number Unknown")
+        addLog(
+            getAzmthDesTopicName(moduleName),
+            self.optimizedDesiredState.angle.degrees,
+            "deg",
+        )
+        addLog(
+            getAzmthActTopicName(moduleName),
+            self.actualState.angle.degrees,
+            "deg",
+        )
+        addLog(
+            getSpeedDesTopicName(moduleName),
+            lambda: (self.optimizedDesiredState.speed / MAX_FWD_REV_SPEED_MPS),
+            "frac",
+        )
+        addLog(
+            getSpeedActTopicName(moduleName),
+            lambda: ((self.actualState.speed) / MAX_FWD_REV_SPEED_MPS),
+            "frac",
+        )
+
 
         # Simulation Support Only
         self.wheelSimFilter = SlewRateLimiter(24.0)
-
-    def _updateTelemetry(self):
-        """
-        Helper function to put all relevant data to logs and dashboards for this module
-        """
-        log(
-            getAzmthDesTopicName(self.moduleName),
-            self.optimizedDesiredState.angle.degrees(),
-            "deg",
-        )
-        log(
-            getAzmthActTopicName(self.moduleName),
-            self.actualState.angle.degrees(),
-            "deg",
-        )
-        log(
-            getSpeedDesTopicName(self.moduleName),
-            self.optimizedDesiredState.speed / MAX_FWD_REV_SPEED_MPS,
-            "frac",
-        )
-        log(
-            getSpeedActTopicName(self.moduleName),
-            (self.actualState.speed) / MAX_FWD_REV_SPEED_MPS,
-            "frac",
-        )
-
-        if RobotIdentification().getSerialFaulted():
-            self.serialFault.setFaulted()
-        else:
-            self.serialFault.setNoFault()
 
     def getActualPosition(self):
         """
@@ -206,6 +195,3 @@ class SwerveModuleControl:
             speed = self.wheelSimFilter.calculate(self.optimizedDesiredState.speed)
             self.actualState.speed = speed + random.uniform(-0.0, 0.0)
             self.actualPosition.distance += self.actualState.speed * 0.02
-
-
-        self._updateTelemetry()

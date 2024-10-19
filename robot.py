@@ -13,7 +13,7 @@ from humanInterface.driverInterface import DriverInterface
 from humanInterface.ledControl import LEDControl
 from navigation.forceGenerators import PointObstacle
 from utils.segmentTimeTracker import SegmentTimeTracker
-from utils.signalLogging import log, addLog, update
+from utils.signalLogging import addLog, addLog, update
 import utils.signalLogging
 from utils.calibration import CalibrationWrangler
 from utils.faults import FaultWrangler
@@ -56,7 +56,6 @@ class MyRobot(wpilib.TimedRobot):
 
         # Normal robot code updates every 20ms, but not everything needs to be that fast.
         # Register slower-update periodic functions
-        self.addPeriodic(self.dashboard.update, 0.2, 0.0)
         self.addPeriodic(self.pwrMon.update, 0.2, 0.0)
         self.addPeriodic(self.crashLogger.update, 1.0, 0.0)
         self.addPeriodic(CalibrationWrangler().update, 0.5, 0.0)
@@ -64,31 +63,28 @@ class MyRobot(wpilib.TimedRobot):
 
         self.autoHasRun = False
 
-    def _testLoggingInit(self):
-        for i in range(0,100):
-            addLog(f"testSig{i}", lambda: self.autoHasRun)
-
-    def _testLoggingMany(self):
-        for _ in range (0,1000):
-            update()
-
 
     def robotPeriodic(self):
         self.stt.start()
 
         self.dInt.update()
+        self.stt.mark("Driver Interface")
 
         self.driveTrain.update()
+        self.stt.mark("Drivetrain")
 
         self.autodrive.updateTelemetry()
         self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
         self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
         self.driveTrain.poseEst.telemetry.setCurObstacles(self.autodrive.getObstacles())
+        self.stt.mark("Telemetry")
 
         self.ledCtrl.setAutoDrive(self.autodrive.isRunning())
         self.ledCtrl.setStuck(self.autodrive.rfp.isStuck())
         self.ledCtrl.update()
+        self.stt.mark("LED Ctrl")
 
+        update()
         self.stt.end()
 
     #########################################################
@@ -103,18 +99,6 @@ class MyRobot(wpilib.TimedRobot):
 
         # Mark we at least started autonomous
         self.autoHasRun = True
-
-        # Test only
-        
-        self._testLoggingInit()
-        profiler = LineProfiler()
-        profiler.add_module(utils.signalLogging)
-        start = wpilib.Timer.getFPGATimestamp()
-        profiler.runcall(self._testLoggingMany)
-        end = wpilib.Timer.getFPGATimestamp()
-        profiler.print_stats()
-        print(f"TotalTime: {end-start} sec")
-
 
     def autonomousPeriodic(self):
 
@@ -142,6 +126,8 @@ class MyRobot(wpilib.TimedRobot):
 
     def teleopPeriodic(self):
 
+        # TODO - this is technically one loop delayed, which could induce lag
+        # Probably not noticeable, but should be corrected.
         self.driveTrain.setManualCmd(self.dInt.getCmd())
 
         if self.dInt.getGyroResetCmd():

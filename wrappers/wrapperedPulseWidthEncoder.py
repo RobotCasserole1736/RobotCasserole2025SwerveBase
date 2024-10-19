@@ -1,7 +1,7 @@
 import math
 from wpilib import DigitalInput, DutyCycle
 from utils.faults import Fault
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 from utils.calibration import Calibration
 from utils.units import wrapAngleRad
 
@@ -38,25 +38,32 @@ class WrapperedPulseWidthEncoder:
         self.maxPulseTimeSec = maxPulse
         self.minAcceptableFreq = minAcceptableFreq
 
+        self.freq = 0
+        self.pulseTime = 0
+
+        addLog(f"{self.name}_freq", lambda: self.freq, "Hz")
+        addLog(f"{self.name}_pulseTime", lambda: self.pulseTime, "sec")
+        addLog(f"{self.name}_angle", lambda: self.curAngleRad, "rad")
+
     def update(self):
         """Return the raw angle reading from the sensor in radians"""
-        freq = self.dutyCycle.getFrequency()
+        self.freq = self.dutyCycle.getFrequency()
         self.faulted = (
-            freq < self.minAcceptableFreq
+            self.freq < self.minAcceptableFreq
         )  # abnormal frequency, we must be faulted
         self.disconFault.set(self.faulted)
 
         if self.faulted:
             # Faulted - don't do any processing
-            pulseTime = -1
+            self.pulseTime = -1
             rawAngle = 0.0
             self.curAngleRad = 0.0
         else:
             # Not-Faulted - read the raw angle from the pulse width
-            pulseTime = self.dutyCycle.getOutput() * (1.0 / freq)
+            self.pulseTime = self.dutyCycle.getOutput() * (1.0 / self.freq)
             rawAngle = (
                 (
-                    (pulseTime - self.minPulseTimeSec)
+                    (self.pulseTime - self.minPulseTimeSec)
                     / (self.maxPulseTimeSec - self.minPulseTimeSec)
                 )
                 * 2
@@ -69,9 +76,6 @@ class WrapperedPulseWidthEncoder:
 
             self.curAngleRad = wrapAngleRad(rawAngle - self.mountOffsetCal.get())
 
-        #log(f"{self.name}_freq", freq, "Hz")
-        #log(f"{self.name}_pulseTime", pulseTime, "sec")
-        #log(f"{self.name}_angle", self.curAngleRad, "rad")
 
     def getAngleRad(self):
         return self.curAngleRad

@@ -89,9 +89,5 @@ def addLog(alias: str, value_getter: Callable[[], float], units=None) -> None:
     """
     _singletonInst.newLogVal(alias, value_getter, units)
 
-
-def log(_, __, ___=None):
-    pass # temp till we're done cleaning up
-
 def sigNameToNT4TopicName(name):
     return f"/{BASE_TABLE}/{name}"

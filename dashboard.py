@@ -5,7 +5,7 @@ from dashboardWidgets.swerveState import SwerveState
 from dashboardWidgets.icon import Icon
 from dashboardWidgets.text import Text
 from utils.faults import FaultWrangler
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 from webserver.webserver import Webserver
 
 
@@ -35,12 +35,21 @@ class Dashboard:
             )
         )
 
-    def update(self):
-        log("isRedIconState",  
+        # Add logging for things that don't come from anywhere else
+        addLog("isRedIconState",  
+               lambda: (
             Icon.kON if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed 
             else Icon.kOFF)
-        log("isBlueIconState", 
+        )
+
+        addLog("isBlueIconState", 
+            lambda: (
             Icon.kON if wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kBlue 
             else Icon.kOFF)
-        log("faultIconState", Icon.kBLINK_FAST if FaultWrangler().hasActiveFaults() else Icon.kOFF)
+        )
+
+        addLog("faultIconState",
+                lambda: (Icon.kBLINK_FAST if FaultWrangler().hasActiveFaults() else Icon.kOFF)
+        )
+
 

@@ -11,7 +11,7 @@ from drivetrain.drivetrainPhysical import (
 )
 from drivetrain.poseEstimation.drivetrainPoseTelemetry import DrivetrainPoseTelemetry
 from utils.faults import Fault
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 from wrappers.wrapperedPoseEstPhotonCamera import WrapperedPoseEstPhotonCamera
 
 
@@ -40,6 +40,9 @@ class DrivetrainPoseEstimator:
         self._simPose = Pose2d()
 
         self.useAprilTags = True
+
+        addLog("PE Vision Targets Seen", lambda: self.camTargetsVisible, "bool")
+        addLog("PE Gyro Angle", self.curRawGyroAngle.degrees, "deg")
 
     def setKnownPose(self, knownPose):
         """Reset the robot's estimated pose to some specific position. This is useful if we know with certanty
@@ -78,7 +81,6 @@ class DrivetrainPoseEstimator:
                     self.camTargetsVisible = True
                 self.telemetry.addVisionObservations(observations)
 
-        log("PE Vision Targets Seen", self.camTargetsVisible, "bool")
 
         # Read the gyro angle
         self.gyroDisconFault.set(not self.gyro.isConnected())
@@ -99,7 +101,6 @@ class DrivetrainPoseEstimator:
         self.curEstPose = self.poseEst.getEstimatedPosition()
 
         # Record the estimate to telemetry/logging-
-        log("PE Gyro Angle", self.curRawGyroAngle.degrees(), "deg")
         self.telemetry.update(self.curEstPose, [x.angle for x in curModulePositions])
 
         # Remember the module positions for next loop

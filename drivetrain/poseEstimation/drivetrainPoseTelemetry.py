@@ -6,7 +6,7 @@ from wpimath.trajectory import Trajectory
 from wpimath.geometry import Pose2d, Pose3d, Transform2d, Rotation2d, Translation2d
 from ntcore import NetworkTableInstance
 
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 from utils.allianceTransformUtils import transform
 from drivetrain.drivetrainPhysical import ROBOT_TO_FRONT_CAM, ROBOT_TO_LEFT_CAM, ROBOT_TO_RIGHT_CAM, robotToModuleTranslations
 from wrappers.wrapperedPoseEstPhotonCamera import CameraPoseObservation

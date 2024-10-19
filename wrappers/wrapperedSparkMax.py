@@ -1,6 +1,6 @@
 from rev import CANSparkMax, SparkMaxPIDController, REVLibError, CANSparkLowLevel
 from wpilib import TimedRobot
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 from utils.units import rev2Rad, rad2Rev, radPerSec2RPM, RPM2RadPerSec
 from utils.faults import Fault
 import time
@@ -37,6 +37,12 @@ class WrapperedSparkMax:
         self.disconFault = Fault(f"Spark Max {name} ID {canID} disconnected")
         self.simActPos = 0
 
+        self.desPos = 0
+        self.desVel = 0
+        self.desVolt = 0
+        self.actPos = 0
+        self.actVel = 0
+
         # Perform motor configuration, tracking errors and retrying until we have success
         retryCounter = 0
         while not self.configSuccess and retryCounter < 10:
@@ -66,8 +72,16 @@ class WrapperedSparkMax:
                 self.configSuccess = True
             time.sleep(0.1)
         
-        #self.configSuccess = True #Debug code - this may/will cause problems
         self.disconFault.set(not self.configSuccess)
+
+        addLog(self.name + "_outputCurrent", self.ctrl.getOutputCurrent, "A")
+        addLog(self.name + "_appliedOutput", self.ctrl.getAppliedOutput, "%")
+        addLog(self.name + "_desVolt", lambda: self.desVolt, "V")
+        addLog(self.name + "_desPos", lambda: self.desPos, "rad")
+        addLog(self.name + "_desVel", lambda: self.desVel, "RPM")
+        addLog(self.name + "_actPos", lambda: self.actPos, "rad")
+        addLog(self.name + "_actVel", lambda: self.actVel, "RPM")
+
 
     def setInverted(self, isInverted):
         if self.configSuccess:
@@ -89,8 +103,8 @@ class WrapperedSparkMax:
         self.simActPos = posCmd
         posCmdRev = rad2Rev(posCmd)
 
-        #log(self.name + "_desPos", posCmd, "Rad")
-        #log(self.name + "_cmdVoltage", arbFF, "V")
+        self.desPos = posCmd
+        self.desVolt = arbFF
 
         if self.configSuccess:
             err = self.pidCtrl.setReference(
@@ -103,7 +117,6 @@ class WrapperedSparkMax:
 
             self.disconFault.set(err != REVLibError.kOk)
 
-            #log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
 
 
     def setVelCmd(self, velCmd, arbFF=0.0):
@@ -113,28 +126,24 @@ class WrapperedSparkMax:
             velCmd (float): motor desired shaft velocity in radians per second
             arbFF (int, optional): _description_. Defaults to 0.
         """
-        velCmdRPM = radPerSec2RPM(velCmd)
 
-        #log(self.name + "_desVel", velCmdRPM, "RPM")
-        #log(self.name + "_cmdVoltage", arbFF, "V")
+        self.desVel = radPerSec2RPM(velCmd)
+        self.desVolt = arbFF
 
         if self.configSuccess:
             err = self.pidCtrl.setReference(
-                velCmdRPM,
+                self.desVel,
                 CANSparkMax.ControlType.kVelocity,
                 0,
                 arbFF,
                 SparkMaxPIDController.ArbFFUnits.kVoltage,
             )
             self.disconFault.set(err != REVLibError.kOk)
-            #log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
 
     def setVoltage(self, outputVoltageVolts):
-        #log(self.name + "_cmdVoltage", outputVoltageVolts, "V")
+        self.desVolt = outputVoltageVolts
         if self.configSuccess:
             self.ctrl.setVoltage(outputVoltageVolts)
-            #log(self.name + "_outputCurrent", self.ctrl.getOutputCurrent(), "A")
-            #log(self.name + "_appliedOutput", self.ctrl.getAppliedOutput(), "%")
 
     def getMotorPositionRad(self):
         if(TimedRobot.isSimulation()):
@@ -144,7 +153,7 @@ class WrapperedSparkMax:
                 pos = rev2Rad(self.encoder.getPosition())
             else:
                 pos = 0
-        #log(self.name + "_motorActPos", pos, "rad")
+        self.actPos = pos
         return pos
 
     def getMotorVelocityRadPerSec(self):
@@ -152,5 +161,5 @@ class WrapperedSparkMax:
             vel = self.encoder.getVelocity()
         else:
             vel = 0
-        #log(self.name + "_motorActVel", vel, "RPM")
+        self.actVel = vel
         return RPM2RadPerSec(vel)

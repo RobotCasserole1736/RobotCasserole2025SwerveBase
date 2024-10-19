@@ -1,6 +1,6 @@
 import wpilib
 
-from utils.signalLogging import log
+from utils.signalLogging import addLog
 
 
 # Utilties for tracking how long certain chunks of code take
@@ -15,19 +15,30 @@ class SegmentTimeTracker:
         self.curPeriod = 0
         self.curLoopExecDur = 0
 
+        addLog("LoopPeriod", lambda: (self.curPeriod * 1000.0), "ms")
+        addLog("LoopDuration", lambda: (self.curLoopExecDur * 1000.0), "ms")
+
     def start(self):
+        """
+        Mark the start of a periodic loop
+        """
         self.tracer.clearEpochs()
         self.prevLoopStartTime = self.loopStartTime
         self.loopStartTime = wpilib.Timer.getFPGATimestamp()
 
     def mark(self, name):
+        """
+        Mark an intermdeate step complete during a periodic loop
+        """
         self.tracer.addEpoch(name)
 
     def end(self):
+        """
+        Mark the end of a periodic loop
+        """
         self.loopEndTime = wpilib.Timer.getFPGATimestamp()
         self.curPeriod = self.loopStartTime - self.prevLoopStartTime
         self.curLoopExecDur = self.loopEndTime - self.loopStartTime
         if self.curLoopExecDur > self.longLoopThresh:
             self.tracer.printEpochs()
-        log("LoopPeriod", self.curPeriod * 1000.0, "ms")
-        log("LoopDuration", self.curLoopExecDur * 1000.0, "ms")
+
