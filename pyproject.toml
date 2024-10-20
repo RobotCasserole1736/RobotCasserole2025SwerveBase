@@ -18,7 +18,7 @@ robotpy_extras = [
     # "navx"
     # "pathplannerlib"
     # "phoenix5"
-    # "phoenix6"
+    "phoenix6",
     "playingwithfusion",
     "rev",
     # "romi"
@@ -28,6 +28,6 @@ robotpy_extras = [
 
 # Other pip packages to install
 requires = [
-    "photonlibpy==2024.2.4",
+    "photonlibpy",
     "debugpy==1.6.7",
 ]
