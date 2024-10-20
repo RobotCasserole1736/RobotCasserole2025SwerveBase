@@ -1,6 +1,7 @@
 from wpimath.geometry import Pose2d, Translation2d, Rotation2d
 
 from utils.mapLookup2d import MapLookup2D
+from utils.mathUtils import limit
 from utils.signalLogging import addLog
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
@@ -46,6 +47,12 @@ R_WALL.setForceInverted(True)
 
 WALLS = [B_WALL, T_WALL, L_WALL, R_WALL]
 
+# Rotation Control - we'll command rotation at this fixed rate until we're within margin
+ROT_RAD_PER_SEC = 2.5
+GOAL_MARGIN_DEG = 5.0
+
+# Fixed periodic rate assumed for execution
+Ts = 0.02
 
 # Usually, the path planner assumes we traverse the path at a fixed velocity
 # However, near the goal, we'd like to slow down. This map defines how we ramp down
@@ -168,14 +175,17 @@ class RepulsorFieldPlanner:
         else:
             return False
     
-    def atGoal(self, trans:Translation2d)->bool:
+    def atGoal(self, pose:Pose2d)->bool:
         """
         Checks if we're within margin of the set goal. Defaults to True if there is no goal.
         """
         if(self.goal is None):
             return True
         else:
-            return (self.goal.translation() - trans).norm() < GOAL_MARGIN_M
+            err = (self.goal - pose)
+            transClose = err.translation().norm() < GOAL_MARGIN_M
+            rotClose = abs(err.rotation().degrees()) < GOAL_MARGIN_DEG
+            return transClose and rotClose
 
     def _getForceAtTrans(self, trans:Translation2d)->Force:
         """
@@ -216,7 +226,7 @@ class RepulsorFieldPlanner:
             curTrans = curPose.translation()
             self.distToGo = (curTrans - self.goal.translation()).norm()
 
-            if(not self.atGoal(curTrans)):
+            if(not self.atGoal(curPose)):
                 # Only calculate a nonzero command if we have a goal and we're not near it.
 
                 # Slow down when we're near the goal
@@ -239,6 +249,12 @@ class RepulsorFieldPlanner:
                     nextTrans += step
 
 
+                # Calculate the rotation command separately
+                # First get the error between where we're at, and where we want to be
+                rotErr = self.goal.rotation() - curPose.rotation()
+                # Take a step in the direction of the error, but limit the step size by the max rotation rate
+                rotStep = limit(rotErr.radians(), ROT_RAD_PER_SEC * Ts)
+
                 # Assemble velocity commands based on the step we took
                 # Note that depending on how the substeps fell, we might have taken more than a full step
                 # We continue to take a step _in the direction_ of the sum of the substeps, but of
@@ -251,11 +267,11 @@ class RepulsorFieldPlanner:
                 # Then, Scale totalStep to the right size
                 totalStep *= (stepSize_m * slowFactor)
 
-                # Periodic loops run at 0.02 sec/loop
-                retVal.velX = totalStep.X() / 0.02
-                retVal.velY = totalStep.Y() / 0.02
-                retVal.velT = 0.0 # For now.... Let the closed-loop controller do the work to rotate us correctly
-                retVal.desPose = Pose2d(curTrans + totalStep, self.goal.rotation())
+                # Periodic loops run at Ts sec/loop
+                retVal.velX = totalStep.X() / Ts
+                retVal.velY = totalStep.Y() / Ts
+                retVal.velT = rotStep / Ts
+                retVal.desPose = Pose2d(curTrans + totalStep, curPose.rotation() + Rotation2d(rotStep))
 
 
             else:

@@ -35,9 +35,6 @@ class AutoDrive(metaclass=Singleton):
         self._toSpeaker = toSpeaker
         self._toPickup = toPickup
 
-    def getTrajectory(self) -> Trajectory|None:
-        return None # TODO
-    
     def updateTelemetry(self) -> None:        
         self._telemTraj = self.rfp.getLookaheadTraj()
 

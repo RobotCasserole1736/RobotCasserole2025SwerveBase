@@ -25,9 +25,6 @@ class AutoSequencer(metaclass=Singleton):
         self.mainModeList = ModeList("Main")
         self.mainModeList.addMode(DriveOut())
         self.mainModeList.addMode(DoNothingMode())
-       
-       
-
 
         self.topLevelCmdGroup = SequentialCommandGroup()
         self.startPose = Pose2d()

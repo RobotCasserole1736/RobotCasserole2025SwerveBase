@@ -47,7 +47,7 @@ class DrivetrainPoseTelemetry:
     def setDesiredPose(self, desPose):
         self.desPose = desPose
 
-    def setCurTrajWaypoints(self, waypoints:list[Pose2d]):
+    def setCurAutoDriveWaypoints(self, waypoints:list[Pose2d]):
         self.curTrajWaypoints = waypoints
 
     def addVisionObservations(self, observations:list[CameraPoseObservation]):
@@ -84,7 +84,7 @@ class DrivetrainPoseTelemetry:
         self.rightCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_RIGHT_CAM))
         self.frontCamPosePublisher.set(Pose3d(estPose).transformBy(ROBOT_TO_FRONT_CAM))
 
-    def setWPITrajectory(self, trajIn):
+    def setCurAutoTrajectory(self, trajIn):
         """Display a specific trajectory on the robot Field2d
 
         Args:

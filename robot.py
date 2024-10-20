@@ -69,8 +69,7 @@ class MyRobot(wpilib.TimedRobot):
         self.stt.mark("Drivetrain")
 
         self.autodrive.updateTelemetry()
-        self.driveTrain.poseEst._telemetry.setWPITrajectory(self.autodrive.getTrajectory())
-        self.driveTrain.poseEst._telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
+        self.driveTrain.poseEst._telemetry.setCurAutoDriveWaypoints(self.autodrive.getWaypoints())
         self.driveTrain.poseEst._telemetry.setCurObstacles(self.autodrive.getObstacles())
         self.stt.mark("Telemetry")
 
@@ -109,7 +108,7 @@ class MyRobot(wpilib.TimedRobot):
     ## Teleop-Specific init and update
     def teleopInit(self):
         # clear existing telemetry trajectory
-        self.driveTrain.poseEst._telemetry.setWPITrajectory(None)
+        self.driveTrain.poseEst._telemetry.setCurAutoTrajectory(None)
 
         # If we're starting teleop but haven't run auto, set a nominal default pose
         # This is needed because initial pose is usually set by the autonomous routine
