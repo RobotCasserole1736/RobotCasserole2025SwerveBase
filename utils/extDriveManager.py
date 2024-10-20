@@ -5,9 +5,15 @@ from utils.singleton import Singleton
 
 
 class ExtDriveManager(metaclass=Singleton):
+    """
+    The External Drive Manager is responsible for checking whether an external USB drive is
+    available for logging purposes, and providing the path to it if so. Since the drive is 
+    critical for debugging what happened during a match, a fault is raised if a drive is expected
+    but not detected to be writeable.
+    """
     def __init__(self):
         self.enableDiskLogging = False
-        self.driveAvailableFault = Fault("Logging USB Drive Not Available")
+        self.driveAvailableFault = Fault("Logging USB drive not available")
 
         if wpilib.RobotBase.isSimulation():
             # Disable in sim

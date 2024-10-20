@@ -1,10 +1,8 @@
 import math
 import wpilib
 
+from utils.constants import FIX_ME_LED_PIN, HEARTBEAT_LED_PIN
 from utils.singleton import Singleton
-
-FIX_ME_LED_PIN = 8
-HEARTBEAT_LED_PIN = 9
 
 
 class FaultWrangler(metaclass=Singleton):
@@ -51,6 +49,22 @@ class FaultWrangler(metaclass=Singleton):
 
 
 class FaultStatusLEDs(metaclass=Singleton):
+    """
+    Drives the two LED's on the robot maintenence panel based on current fault status.
+    "FIX-ME" -> Red -> blinks when one or more faults are active.
+    "HEARTBEAT" -> White -> pulses like a heart beat normally when code is running.
+
+    Pit crew should be trained to look for a good heartbeat, AND no fix-me.
+
+    No heartbeat means code isn't running. SW team needed to investigate.
+    Heartbeat AND fix-me means software detected hardware broken or disconnected. The driver dashboard should be pulled up to investigate the actual root cause. 
+
+    Admonition to software people: You must be very rigirous about not cerating false positives here. If 
+    the fix-me light is on and blinking when the robot _doesn't_ need pit crew attention, they'll quickly
+    learn to just ignore it. And thereby ignore any real faults that get detected.
+
+    Unless you want the pit crew to stop and fix the robot, DON'T blink the fix-me light.
+    """
     def __init__(self):
         self.fixMeLED = wpilib.DigitalOutput(FIX_ME_LED_PIN)
         self.fixMeLED.setPWMRate(500.0)

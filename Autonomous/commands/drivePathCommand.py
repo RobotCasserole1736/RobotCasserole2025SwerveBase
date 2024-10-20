@@ -34,7 +34,7 @@ class DrivePathCommand(Command):
         # we'll populate these for real later, just declare they'll exist
         self.duration = self.path.getTotalTime()
         self.drivetrain = DrivetrainControl()
-        self.poseTelem = self.drivetrain.poseEst.telemetry
+        self.poseTelem = self.drivetrain.poseEst._telemetry
 
     def initialize(self):
         self.startTime = Timer.getFPGATimestamp()

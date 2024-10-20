@@ -16,7 +16,8 @@ def logisticFunc(x, L, k, x0):
 @dataclass
 class Force:
     """
-    Simple class to represent a force in a 2d plane
+    Simple class to represent a force in a 2d plane. Represents the metaphorical "forces"
+    we use to perform on-the-fly path generation
     """
     x:float=0
     y:float=0

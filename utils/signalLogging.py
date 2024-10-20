@@ -11,6 +11,12 @@ BASE_TABLE = "SmartDashboard"
 
 @dataclass
 class _LoggedVal():
+    """
+    Container for holding a data source (a callable in our code)
+    and all the places the data might go - NetworkTables for live publishing,
+    or a file for later review. If writing files is not possible (USB drive not in?)
+    the file publisher should be None
+    """
     valGetter:Callable[[], float]
     ntPublisher:nt.DoublePublisher
     filePublisher:wpilog.DoubleLogEntry|None
@@ -74,8 +80,11 @@ class SignalWrangler(metaclass=Singleton):
 ###########################################
 
 _singletonInst = SignalWrangler() # cache a reference
-# Log a new named value
 def logUpdate():
+    """
+    Periodic call to sample and broadcast all logged values. Should happen once per 
+    20ms loop.
+    """
     _singletonInst.update()
 
 def addLog(alias: str, value_getter: Callable[[], float], units=None) -> None:

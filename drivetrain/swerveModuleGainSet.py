@@ -1,5 +1,4 @@
 from utils.calibration import Calibration
-from utils.robotIdentification import RobotIdentification, RobotTypes
 from utils.units import RPM2RadPerSec
 
 
@@ -27,7 +26,7 @@ class SwerveModuleGainSet:
         self.azmthI = Calibration("Drivetrain Module Azmth kI", 0.0)
         self.azmthD = Calibration("Drivetrain Module Azmth kD", 0.0000)
 
-    def hasChanged(self):
+    def hasChanged(self)->bool:
         """
         Returns:
             bool: True if any gain in the set is modified, false otherwise

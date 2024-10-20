@@ -8,12 +8,14 @@ from utils.faults import Fault
 from utils.signalLogging import addLog
 
 
-# Records faults and runtime metrics for the roboRIO
 class RIOMonitor:
     def __init__(self):
-        self.railFault5v = Fault("RIO 5V (DIO) Rail Faulted")
-        self.railFault3p3v = Fault("RIO 3.3V Rail Faulted")
-        self.railFault6v = Fault("RIO 6V (PWM) Rail Faulted")
+        """
+        Records faults and runtime metrics for the roboRIO.
+        """
+        self.railFault5v = Fault("RIO 5V (DIO) rail faulted")
+        self.railFault3p3v = Fault("RIO 3.3V rail faulted")
+        self.railFault6v = Fault("RIO 6V (PWM) rail faulted")
 
         # CPU Stats - remember last time metrics
         self.prevUserTime = 0

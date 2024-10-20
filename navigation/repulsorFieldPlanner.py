@@ -7,7 +7,7 @@ from drivetrain.drivetrainCommand import DrivetrainCommand
 
 from navigation.navForce import Force
 from navigation.forceGenerators import HorizontalObstacle, ForceGenerator, PointObstacle, VerticalObstacle
-from navigation.navConstants import FIELD_X_M, FIELD_Y_M
+from utils.constants import FIELD_X_M, FIELD_Y_M
 
 # Relative strength of how hard the goal pulls the robot toward it
 # Too big and the robot will be pulled through obstacles

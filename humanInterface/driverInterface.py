@@ -15,24 +15,33 @@ class DriverInterface:
         # contoller
         ctrlIdx = 0
         self.ctrl = XboxController(ctrlIdx)
+        self.connectedFault = Fault(f"Driver XBox controller ({ctrlIdx}) unplugged")
+
+        # Drivetrain motion commands
         self.velXCmd = 0
         self.velYCmd = 0
         self.velTCmd = 0
-        self.gyroResetCmd = False
-        self.connectedFault = Fault(f"Driver XBox Controller ({ctrlIdx}) Unplugged")
+
+        # Driver motion rate limiters - enforce smoother driving
         self.velXSlewRateLimiter = SlewRateLimiter(rateLimit=MAX_TRANSLATE_ACCEL_MPS2)
         self.velYSlewRateLimiter = SlewRateLimiter(rateLimit=MAX_TRANSLATE_ACCEL_MPS2)
         self.velTSlewRateLimiter = SlewRateLimiter(rateLimit=MAX_ROTATE_ACCEL_RAD_PER_SEC_2)
-        self.navToSpeaker = False
-        self.navToPickup = False
-        self.createObstacle = False
 
+        # Navigation commands
+        self.autoDriveToSpeaker = False
+        self.autoDriveToPickup = False
+        self.createDebugObstacle = False
+
+        # Utility - reset to zero-angle at the current pose
+        self.gyroResetCmd = False
+
+        # Logging
         addLog("DI FwdRev Cmd", lambda: self.velXCmd, "mps")
         addLog("DI Strafe Cmd", lambda: self.velYCmd, "mps")
         addLog("DI Rot Cmd", lambda: self.velTCmd, "radps")
         addLog("DI gyroResetCmd", lambda: self.gyroResetCmd, "bool")
-        addLog("DI navToSpeaker", lambda: self.navToSpeaker, "bool")
-        addLog("DI navToPickup", lambda: self.navToPickup, "bool")
+        addLog("DI autoDriveToSpeaker", lambda: self.autoDriveToSpeaker, "bool")
+        addLog("DI autoDriveToPickup", lambda: self.autoDriveToPickup, "bool")
 
     def update(self):
         # value of contoller buttons
@@ -53,10 +62,11 @@ class DriverInterface:
             vYJoyWithDeadband = applyDeadband(vYJoyRaw, 0.15)
             vRotJoyWithDeadband = applyDeadband(vRotJoyRaw, 0.2)
 
+            # TODO - if the driver wants a slow or sprint button, add it here.
             #slowMult = 1.0 if (self.ctrl.getRightBumper()) else 0.75
             slowMult = 1.0
 
-            # velocity cmd
+            # Shape velocity command
             velCmdXRaw = vXJoyWithDeadband * MAX_STRAFE_SPEED_MPS * slowMult
             velCmdYRaw = vYJoyWithDeadband * MAX_FWD_REV_SPEED_MPS * slowMult
             velCmdRotRaw = vRotJoyWithDeadband * MAX_ROTATE_SPEED_RAD_PER_SEC
@@ -68,9 +78,9 @@ class DriverInterface:
 
             self.gyroResetCmd = self.ctrl.getAButton()
 
-            self.navToSpeaker = self.ctrl.getBButton()
-            self.navToPickup = self.ctrl.getXButton()
-            self.createObstacle = self.ctrl.getYButtonPressed()
+            self.autoDriveToSpeaker = self.ctrl.getBButton()
+            self.autoDriveToPickup = self.ctrl.getXButton()
+            self.createDebugObstacle = self.ctrl.getYButtonPressed()
 
             self.connectedFault.setNoFault()
 
@@ -80,29 +90,29 @@ class DriverInterface:
             self.velYCmd = 0.0
             self.velTCmd = 0.0
             self.gyroResetCmd = False
-            self.navToSpeaker = False
-            self.navToPickup = False
+            self.autoDriveToSpeaker = False
+            self.autoDriveToPickup = False
+            self.createDebugObstacle = False
             self.connectedFault.setFaulted()
-            self.createObstacle = False
 
 
 
 
-    def getCmd(self):
+    def getCmd(self) -> DrivetrainCommand:
         retval = DrivetrainCommand()
         retval.velX = self.velXCmd
         retval.velY = self.velYCmd
         retval.velT = self.velTCmd
         return retval
 
-    def getNavToSpeaker(self):
-        return self.navToSpeaker
+    def getNavToSpeaker(self) -> bool:
+        return self.autoDriveToSpeaker
     
-    def getNavToPickup(self):
-        return self.navToPickup
+    def getNavToPickup(self) -> bool:
+        return self.autoDriveToPickup
 
-    def getGyroResetCmd(self):
+    def getGyroResetCmd(self) -> bool:
         return self.gyroResetCmd
 
-    def getCreateObstacle(self):
-        return self.createObstacle
+    def getCreateObstacle(self) -> bool:
+        return self.createDebugObstacle

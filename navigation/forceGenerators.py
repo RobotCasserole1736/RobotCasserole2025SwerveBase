@@ -1,6 +1,6 @@
 import math
 from wpimath.geometry import Translation2d
-from navigation.navConstants import FIELD_X_M, FIELD_Y_M
+from utils.constants import FIELD_X_M, FIELD_Y_M
 from navigation.navForce import Force, logisticFunc
 
 class ForceGenerator:

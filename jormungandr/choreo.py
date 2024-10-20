@@ -4,6 +4,11 @@ from jormungandr.choreoTrajectory import ChoreoTrajectory
 
 
 def fromFile(file: str) -> ChoreoTrajectory:
+    """
+    Handles reading a choreo trajectory file from disk,
+    reading all the data into it, and creating the list of 
+    trajectory states that we'll later use to control the robot
+    """
     samples = []
     with open(file, "r", encoding="utf-8") as trajFile:
         data = json.load(trajFile)

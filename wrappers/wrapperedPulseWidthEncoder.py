@@ -26,7 +26,7 @@ class WrapperedPulseWidthEncoder:
     ):
         self.dutyCycle = DutyCycle(DigitalInput(port))
         self.name = f"Encoder_{name}"
-        self.disconFault = Fault(f"{self.name} DIO port {port} Disconnected")
+        self.disconFault = Fault(f"{self.name} DIO port {port} disconnected")
         self.mountOffsetCal = Calibration(
             self.name + "_mountOffset", mountOffsetRad, "rad"
         )

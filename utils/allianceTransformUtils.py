@@ -2,13 +2,15 @@ from typing import overload
 import wpilib
 from wpimath.geometry import Pose2d, Rotation2d, Transform2d, Translation2d
 from jormungandr.choreoTrajectory import ChoreoTrajectoryState
-from utils.constants import FIELD_LENGTH_FT
-from utils.units import ft2m
+from utils.constants import FIELD_X_M
 
 """
  Utilities to help transform from blue alliance to red if needed
  We chose a coordinate system where the origin is always in the 
- bottom left on the blue alliance
+ bottom left on the blue alliance.
+
+ Note that this assumes the "mirroring" that happened in 2023 and 2024.
+ A diagonally symmetric field (like 2020) would not need this.
 """
 
 
@@ -21,7 +23,7 @@ def onRed():
 # Base transform for X axis to flip to the other side of the field.
 def transformX(xIn):
     if onRed():
-        return ft2m(FIELD_LENGTH_FT) - xIn
+        return FIELD_X_M - xIn
     else:
         return xIn
 
@@ -53,7 +55,7 @@ def transform(valIn: ChoreoTrajectoryState) -> ChoreoTrajectoryState:
     pass
 
 
-# Actual implementation of the trasnform function
+# Actual implementation of the transform function
 def transform(valIn):
     if isinstance(valIn, Rotation2d):
         if onRed():

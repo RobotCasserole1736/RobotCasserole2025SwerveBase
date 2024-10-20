@@ -5,12 +5,9 @@
 #######################################################################################
 ## FIELD DIMENSIONS
 #######################################################################################
-FIELD_LENGTH_FT = 54.2685
-SPEAKER_TARGET_HEIGHT_M = 2.0385024
-AMP_LOC_X_M = 1.84
-AMP_LOC_Y_M = 8.199
-SPEAKER_LOC_X_M = 0.22987
-SPEAKER_LOC_Y_M = 5.4572958333417994
+
+FIELD_X_M = 16.54 # "Length"
+FIELD_Y_M = 8.21  # "Width"
 
 #######################################################################################
 ## CAN ID'S
@@ -61,9 +58,9 @@ DT_BR_AZMTH_ENC_PORT = 0
 DT_FL_AZMTH_ENC_PORT = 1
 DT_BL_AZMTH_ENC_PORT = 2
 DT_FR_AZMTH_ENC_PORT = 3
-SINGER_ANGLE_ABS_POS_ENC = 4
-TUNER_ANGLE_ABS_POS_ENC = 5
+# Unused = 4
+# Unused = 5
 # Unused = 6
 # Unused = 7
-# Unused = 8
-# Unused = 9
+FIX_ME_LED_PIN = 8
+HEARTBEAT_LED_PIN = 9

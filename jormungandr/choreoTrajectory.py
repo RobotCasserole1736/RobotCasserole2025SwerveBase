@@ -3,17 +3,22 @@ import math
 
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.kinematics import ChassisSpeeds
-from utils.constants import FIELD_LENGTH_FT
+from utils.constants import FIELD_X_M
 
-from utils.units import ft2m
-
-
-# Doesn't appear to be pulled into python from Interpolatable
 def _floatInterp(start, end, frac) -> float:
+    """
+    Note, in theory wpilib should have this, but the python version in 2024
+    didn't seem to match up with what java/c++ had added - not sure why it
+    was missing. It was simple enough we just replicated it here though.
+    """
     return start + (end - start) * frac
 
 
 class ChoreoTrajectoryState:
+    """
+    Represents what state the robot should be in at a particular time. 
+    State includes both position and velocity in all dimensions
+    """
     def __init__(
         self,
         timestamp: float,
@@ -33,12 +38,22 @@ class ChoreoTrajectoryState:
         self.angularVelocity = angularVelocity
 
     def getPose(self) -> Pose2d:
+        """
+        Get a pose object associated with this state
+        """
         return Pose2d(self.x, self.y, Rotation2d(value=self.heading))
 
     def getChassisSpeeds(self) -> ChassisSpeeds:
+        """
+        Get a chassis speed associated with this object
+        """
         return ChassisSpeeds(self.velocityX, self.velocityY, self.angularVelocity)
 
     def asArray(self) -> list[float]:
+        """
+        Dump all values into an array in a specific order. This is mostly 
+        for telemetry purposes.
+        """
         return [
             self.timestamp,
             self.x,
@@ -52,6 +67,10 @@ class ChoreoTrajectoryState:
     def interpolate(
         self, endValue: ChoreoTrajectoryState, t: float
     ) -> ChoreoTrajectoryState:
+        """
+        Perform Linear Interpolation between this trajectory state, and some other one.
+        Useful for getting a state that's part way between two defined states.
+        """
         scale = (t - self.timestamp) / (endValue.timestamp - self.timestamp)
 
         return ChoreoTrajectoryState(
@@ -65,9 +84,15 @@ class ChoreoTrajectoryState:
         )
 
     def flipped(self):
+        """
+        Mirror the trajectory state to the other alliance. Note that this assumes the style of 
+        symmetry that the 2023/2024 fields had. Additionally, note that this is kinda the same thing
+        that we did in allianceTransformUtils, but the Choreo library also provided the functionality.
+        It's here too. Depending on how Choreo architects in 2025+, we might want to move this.
+        """
         return ChoreoTrajectoryState(
             self.timestamp,
-            ft2m(FIELD_LENGTH_FT) - self.x,
+            FIELD_X_M - self.x,
             self.y,
             math.pi - self.heading,
             self.velocityX * -1.0,
@@ -77,17 +102,32 @@ class ChoreoTrajectoryState:
 
 
 class ChoreoTrajectory:
+    """
+    A trajectory is a series of states that describes how the robot moves through
+    a pre-defined path on the field. Choreo is a tool that generates "optimal" paths
+    based on knowledge of what a swerve drive can physically do. These are designed
+    and generated on a laptop. Then, before autonomous, the robot loads the 
+    trajectory and sends commands to the drivetrain based on the trajectory
+    """
     def __init__(self, samples: list[ChoreoTrajectoryState]):
         self.samples = samples
 
     def _sampleImpl(self, timestamp) -> ChoreoTrajectoryState:
+        """
+        Actual implementation of getting the robot state at a specific timestamp
+        """
+
         # Handle timestamps outside the trajectory range
         if timestamp < self.samples[0].timestamp:
             return self.samples[0]
         if timestamp > self.getTotalTime():
             return self.samples[-1]
 
+
         # Binary search to find the two states on either side of the requested timestamps
+        # TODO - We might be able to pick better low/high guesses. We know we'll almost always
+        # be iterating throught the trajectory in roughly 20ms steps. It would be helpful to
+        # not have to search the full array each time.
         low = 0
         high = len(self.samples) - 1
         while low != high:
@@ -115,25 +155,44 @@ class ChoreoTrajectory:
     def sample(
         self, timestamp: float, mirrorForRedAlliance: bool = False
     ) -> ChoreoTrajectoryState:
+        """
+        Return the desired state of the robot at the specified time 
+        """
         tmp = self._sampleImpl(timestamp)
 
+        # Include flipping for alliance if needed.
         if mirrorForRedAlliance:
             return tmp.flipped()
         else:
             # no mirroring
             return tmp
 
-    def getInitialPose(self):
+    def getInitialPose(self) -> Pose2d:
+        """
+        Returns the pose we assume the robot starts the trajectory at.
+        """
         return self.samples[0].getPose()
 
-    def getFinalPose(self):
+    def getFinalPose(self) -> Pose2d:
+        """
+        Returns the pose we hope the robot will end the trajectory at
+        """
         return self.samples[-1].getPose()
 
-    def getTotalTime(self):
+    def getTotalTime(self) -> float:
+        """
+        Return the duration of the trajectory in seconds
+        """
         return self.samples[-1].timestamp
 
-    def getPoses(self):
+    def getPoses(self) -> list[Pose2d]:
+        """
+        Return the list of all poses associated with this trajectory. Mostly useful for telemetry.
+        """
         return [x.getPose() for x in self.samples]
 
     def flipped(self) -> ChoreoTrajectory:
+        """
+        Return the whole trajectory flipped to the opposite alliance.
+        """
         return ChoreoTrajectory([x.flipped() for x in self.samples])

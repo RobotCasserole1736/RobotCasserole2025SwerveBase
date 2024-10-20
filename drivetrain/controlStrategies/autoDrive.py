@@ -21,16 +21,13 @@ class AutoDrive(metaclass=Singleton):
         self._toSpeaker = False
         self._toPickup = False
         self.rfp = RepulsorFieldPlanner()
-        self._trajCtrl = HolonomicDriveController()
+        self._trajCtrl = HolonomicDriveController("AutoDrive")
         self._telemTraj = []
         self._obsDet = ObstacleDetector()
         self._olCmd = DrivetrainCommand()
         self._prevCmd:DrivetrainCommand|None = None
         self._plannerDur:float = 0.0
 
-        addLog("AutoDrive FwdRev Cmd", lambda: self._olCmd.velX, "mps")
-        addLog("AutoDrive Strafe Cmd", lambda: self._olCmd.velY, "mps")
-        addLog("AutoDrive Rot Cmd", lambda: self._olCmd.velT, "radpers")
         addLog("AutoDrive Proc Time", lambda:(self._plannerDur * 1000.0), "ms")
 
 

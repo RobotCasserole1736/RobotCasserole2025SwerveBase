@@ -55,7 +55,9 @@ static getInputVoltage() → float
 '''
 
 class PowerMonitor:
-
+    """
+    Wrapper class to log electrical statistics on robot usage
+    """
     def __init__(self):
         self.powerDist = wpilib.PowerDistribution()
         addLog("Battery current draw",self.powerDist.getTotalCurrent, "A")

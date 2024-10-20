@@ -3,7 +3,15 @@ from operator import itemgetter
 
 # pylint: disable=too-few-public-methods
 class MapLookup2D:
-    # points should be a list of two-element tuples, with (x,y) pairs described by each tuple.
+    """
+    A map-lookup is a common tool to define a function. The user must provide samples of the 
+    function's output value (y) at different inputs (x). This function will linearally interpolate
+    between the provided points. The asusmption is the function is "piecewise linear". As long
+    as enough sample points are provided, this method can well-aproximate just about any function.
+    
+    Points should be a list of two-element tuples, with (x,y) pairs described by each tuple.
+
+    """
     def __init__(self, points: list[tuple[float, float]]):
         self.points = points
         # Ensure points list is ordered from lowest value to highest value

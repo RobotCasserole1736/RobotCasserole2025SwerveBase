@@ -9,7 +9,7 @@ from utils.singleton import Singleton
 
 class Trajectory(metaclass=Singleton):
     def __init__(self):
-        self.trajCtrl = HolonomicDriveController()
+        self.trajHDC = HolonomicDriveController("Trajectory")
         self.curTrajCmd = None
 
     def setCmd(self, cmd: ChoreoTrajectoryState | None):
@@ -22,6 +22,6 @@ class Trajectory(metaclass=Singleton):
 
     def update(self, cmdIn: DrivetrainCommand, curPose: Pose2d) -> DrivetrainCommand:
         if self.curTrajCmd is not None:
-            return self.trajCtrl.update(self.curTrajCmd, curPose)
+            return self.trajHDC.update(self.curTrajCmd, curPose)
         else:
             return cmdIn

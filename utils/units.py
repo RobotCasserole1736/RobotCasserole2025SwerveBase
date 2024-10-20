@@ -4,48 +4,48 @@ import math
 ## Additional Unit conversion classes not in wpilib.units
 
 
-def deg2Rad(inVal):
+def deg2Rad(inVal:float)->float:
     return math.pi / 180.0 * inVal
 
 
-def rad2Deg(inVal):
+def rad2Deg(inVal:float)->float:
     return 180.0 / math.pi * inVal
 
 
-def rev2Rad(inVal):
+def rev2Rad(inVal:float)->float:
     return 2.0 * math.pi * inVal
 
 
-def rad2Rev(inVal):
+def rad2Rev(inVal:float)->float:
     return 1.0 / (math.pi * 2.0) * inVal
 
 
-def m2ft(inVal):
+def m2ft(inVal:float)->float:
     return 3.28084 * inVal
 
 
-def ft2m(inVal):
+def ft2m(inVal:float)->float:
     return float(inVal / 3.28084)
 
 
-def m2in(inVal):
+def m2in(inVal:float)->float:
     return 39.3701 * inVal
 
 
-def in2m(inVal):
+def in2m(inVal:float)->float:
     return inVal / 39.3701
 
 
-def radPerSec2RPM(inVal):
+def radPerSec2RPM(inVal:float)->float:
     return inVal * 9.55
 
 
 # pylint: disable=invalid-name
-def RPM2RadPerSec(inVal):
+def RPM2RadPerSec(inVal:float)->float:
     return inVal / 9.55
 
 
-def wrapAngleDeg(angle):
+def wrapAngleDeg(angle:float)->float:
     angle %= 360.0
     angle = (angle - 360) if angle > 180 else angle
     angle = (angle + 360) if angle < -180 else angle

@@ -69,9 +69,9 @@ class MyRobot(wpilib.TimedRobot):
         self.stt.mark("Drivetrain")
 
         self.autodrive.updateTelemetry()
-        self.driveTrain.poseEst.telemetry.setWPITrajectory(self.autodrive.getTrajectory())
-        self.driveTrain.poseEst.telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
-        self.driveTrain.poseEst.telemetry.setCurObstacles(self.autodrive.getObstacles())
+        self.driveTrain.poseEst._telemetry.setWPITrajectory(self.autodrive.getTrajectory())
+        self.driveTrain.poseEst._telemetry.setCurTrajWaypoints(self.autodrive.getWaypoints())
+        self.driveTrain.poseEst._telemetry.setCurObstacles(self.autodrive.getObstacles())
         self.stt.mark("Telemetry")
 
         self.ledCtrl.setAutoDrive(self.autodrive.isRunning())
@@ -109,7 +109,7 @@ class MyRobot(wpilib.TimedRobot):
     ## Teleop-Specific init and update
     def teleopInit(self):
         # clear existing telemetry trajectory
-        self.driveTrain.poseEst.telemetry.setWPITrajectory(None)
+        self.driveTrain.poseEst._telemetry.setWPITrajectory(None)
 
         # If we're starting teleop but haven't run auto, set a nominal default pose
         # This is needed because initial pose is usually set by the autonomous routine
@@ -153,7 +153,7 @@ class MyRobot(wpilib.TimedRobot):
     ## Disabled-Specific init and update
     def disabledPeriodic(self):
         self.autoSequencer.updateMode()
-        Trajectory().trajCtrl.updateCals()
+        Trajectory().trajHDC.updateCals()
 
     def disabledInit(self):
         self.autoSequencer.updateMode(True)
