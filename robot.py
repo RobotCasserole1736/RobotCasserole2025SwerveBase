@@ -1,8 +1,4 @@
-import math
-import random
 import sys
-import cProfile, pstats
-from line_profiler import LineProfiler
 import wpilib
 from dashboard import Dashboard
 from drivetrain.controlStrategies.autoDrive import AutoDrive
@@ -13,8 +9,7 @@ from humanInterface.driverInterface import DriverInterface
 from humanInterface.ledControl import LEDControl
 from navigation.forceGenerators import PointObstacle
 from utils.segmentTimeTracker import SegmentTimeTracker
-from utils.signalLogging import addLog, addLog, update
-import utils.signalLogging
+from utils.signalLogging import logUpdate
 from utils.calibration import CalibrationWrangler
 from utils.faults import FaultWrangler
 from utils.crashLogger import CrashLogger
@@ -84,7 +79,7 @@ class MyRobot(wpilib.TimedRobot):
         self.ledCtrl.update()
         self.stt.mark("LED Ctrl")
 
-        update()
+        logUpdate()
         self.stt.end()
 
     #########################################################

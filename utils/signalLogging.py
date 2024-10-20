@@ -5,7 +5,6 @@ import ntcore as nt
 import wpiutil.log as wpilog  # pylint: disable=import-error,no-name-in-module
 from utils.extDriveManager import ExtDriveManager
 from utils.singleton import Singleton
-from collections import defaultdict
 
 
 BASE_TABLE = "SmartDashboard"
@@ -76,7 +75,7 @@ class SignalWrangler(metaclass=Singleton):
 
 _singletonInst = SignalWrangler() # cache a reference
 # Log a new named value
-def update():
+def logUpdate():
     _singletonInst.update()
 
 def addLog(alias: str, value_getter: Callable[[], float], units=None) -> None:
