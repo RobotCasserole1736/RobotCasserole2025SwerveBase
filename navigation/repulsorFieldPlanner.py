@@ -101,9 +101,9 @@ class RepulsorFieldPlanner:
         self.goal:Pose2d|None = None
         self.lookaheadTraj:list[Pose2d] = []
 
-        addLog("PotentialField Num Obstacles", lambda: (len(self.fixedObstacles) + len(self.transientObstcales)))
-        addLog("PotentialField Path Active", lambda: (self.goal is not None))
-        addLog("PotentialField DistToGo", lambda: self.distToGo, "m")
+        #addLog("PotentialField Num Obstacles", lambda: (len(self.fixedObstacles) + len(self.transientObstcales)))
+        #addLog("PotentialField Path Active", lambda: (self.goal is not None))
+        #addLog("PotentialField DistToGo", lambda: self.distToGo, "m")
 
     def setGoal(self, goal:Pose2d|None):
         """

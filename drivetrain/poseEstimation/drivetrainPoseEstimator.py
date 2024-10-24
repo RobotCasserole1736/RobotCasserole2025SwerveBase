@@ -59,7 +59,7 @@ class DrivetrainPoseEstimator:
 
         # Logging and Telemetry
         addLog("PE Vision Targets Seen", lambda: self._camTargetsVisible, "bool")
-        addLog("PE Gyro Angle", self._curRawGyroAngle.degrees, "deg")
+        #addLog("PE Gyro Angle", self._curRawGyroAngle.degrees, "deg")
         self._telemetry = DrivetrainPoseTelemetry()
 
         # Simulation Only - maintain a rough estimate of pose from velocities

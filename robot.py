@@ -22,6 +22,7 @@ from utils.powerMonitor import PowerMonitor
 from wpimath.geometry import Translation2d, Pose2d, Rotation2d
 
 class MyRobot(wpilib.TimedRobot):
+
     #########################################################
     ## Common init/update for all modes
     def robotInit(self):

@@ -23,11 +23,16 @@ class RIOMonitor:
         self.prevSystemTime = 0
         self.prevIdleTime = 0
 
-        self.thread1 = Thread(target=self._updateFast, daemon=True)
-        self.thread2 = Thread(target=self._updateSlow, daemon=True)
         self.runCmd = True
+
+        self.thread1 = Thread(target=self._updateFast, daemon=True)
         self.thread1.start()
-        self.thread2.start()
+
+        # Note - this is currently taking a VERY long time to run.
+        # We need to redesign this to actually be multithreaded, as the 
+        # GIL is killing us. For now, commented out.
+        #self.thread2 = Thread(target=self._updateSlow, daemon=True)
+        #self.thread2.start()
 
         self.CANBusUsage = 0
         self.CANErrCount = 0
@@ -38,36 +43,39 @@ class RIOMonitor:
         self.extDiskUsage = 0
 
         addLog("RIO Supply Voltage", RobotController.getInputVoltage, "V")
-        addLog("RIO CAN Bus Usage", lambda: self.CANBusUsage, "pct")
-        addLog(
-            "RIO CAN Bus Err Count",
-             lambda: self.CANErrCount,
-            "count",
-        )
-        addLog("RIO Memory Usage", lambda: self.memUsagePct , "pct")
-        addLog("RIO Internal Disk Usage", lambda: self.intDiskUsage, "pct")
-        addLog(f"RIO USB Disk Usage",lambda: self.extDiskUsage, "pct")
-        addLog("RIO CPU Load",lambda: self.cpuLoad , "pct")
+        #addLog("RIO CAN Bus Usage", lambda: self.CANBusUsage, "pct")
+        #addLog(
+        #    "RIO CAN Bus Err Count",
+        #     lambda: self.CANErrCount,
+        #    "count",
+        #)
+        #addLog("RIO Memory Usage", lambda: self.memUsagePct , "pct")
+        #addLog("RIO Internal Disk Usage", lambda: self.intDiskUsage, "pct")
+        #addLog(f"RIO USB Disk Usage",lambda: self.extDiskUsage, "pct")
+        #addLog("RIO CPU Load",lambda: self.cpuLoad , "pct")
 
 
 
     def stopThreads(self):
         self.runCmd = False
         self.thread1.join()
-        self.thread2.join()
+        #self.thread2.join()
 
     # Things that should be recorded fairly quickly
     def _updateFast(self):
         while self.runCmd:
             self._updateVoltages()
-            time.sleep(0.02)
+            time.sleep(1.0)
 
     # Things that don't have to be updated as fast
     def _updateSlow(self):
         while self.runCmd:
             self._updateMemStats()
+            time.sleep(1.0)
             self._updateCPUStats()
+            time.sleep(1.0)
             self._updateCANStats()
+            time.sleep(1.0)
             self._updateDiskStats()
             time.sleep(1.0)
 
