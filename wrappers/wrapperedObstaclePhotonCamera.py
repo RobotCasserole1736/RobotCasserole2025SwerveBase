@@ -13,7 +13,7 @@ class CameraObstacleObservation:
         self.estFieldPose = estFieldPose
         self.trustworthiness = trustworthiness  # TODO - not used yet
 
-MIN_AREA=10.0 #idk tune this if we are reacting to small targets
+MIN_AREA=1.0 #idk tune this if we are reacting to small targets
 
 def _calculateDistanceToTargetMeters(
         cameraHeightMeters:float,
@@ -68,10 +68,12 @@ class WrapperedObstaclePhotonCamera:
         # MiniHack - results also have a more accurate "getTimestamp()", but this is
         # broken in photonvision 2.4.2. Hack with the non-broken latency calcualtion
         latency = res.getLatencyMillis()
-        obsTime = wpilib.Timer.getFPGATimestamp() - latency
+        obsTime = wpilib.Timer.getFPGATimestamp()
         
         # Update our disconnected fault since we have something from the camera
         self.disconFault.setNoFault()
+
+        print("got camera data")
 
         # Process each target.
         # Each target has multiple solutions for where you could have been at on the field
@@ -83,7 +85,9 @@ class WrapperedObstaclePhotonCamera:
         # don't make sense.
         for target in res.getTargets():
             # Transform both poses to on-field poses
+            print("saw target")
             if (target.getArea()>MIN_AREA):
+                print("big target")
                 # Use algorithm described at 
                 # https://docs.limelightvision.io/docs/docs-limelight/tutorials/tutorial-estimating-distance
                 # to estimate distance from the camera to the target.
@@ -97,6 +101,7 @@ class WrapperedObstaclePhotonCamera:
                     dist,
                     Rotation2d.fromDegrees(target.getYaw())
                 )
+                print(f"{camToObstacle}")
                 
                 self.obstacleEstimates.append(camToObstacle)
 

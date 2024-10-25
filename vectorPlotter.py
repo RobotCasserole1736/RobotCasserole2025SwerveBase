@@ -16,6 +16,8 @@ from scipy.interpolate import griddata
 from scipy.ndimage import gaussian_filter
 from scipy.signal import argrelextrema
 
+from utils.constants import FIELD_X_M, FIELD_Y_M
+
 class VectorPlotter:
     def __init__(self, width_meters, height_meters, fig_size=(10, 8), dpi=100):
         """
@@ -97,7 +99,7 @@ class VectorPlotter:
 
         # Normalize magnitudes for color mapping
         print("Normalizing magnitudes for color mapping...")
-        norm = plt.Normalize(vmin=min_magnitude, vmax=max_magnitude)
+        norm = plt.Normalize(vmin=min_magnitude, vmax=max_magnitude) 
         cmap = cm.get_cmap('jet')  # Blue -> Green -> Red
         colors = cmap(norm(magnitudes))
         print("Color normalization complete.")

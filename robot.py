@@ -132,9 +132,9 @@ class MyRobot(wpilib.TimedRobot):
             # For test purposes, inject a series of obstacles around the current pose
             ct = self.driveTrain.poseEst.getCurEstPose().translation()
             tfs = [
-                Translation2d(1.7, -0.5),
-                Translation2d(0.75, -0.75),
-                Translation2d(1.7, 0.5),
+                #Translation2d(1.7, -0.5),
+                #Translation2d(0.75, -0.75),
+                #Translation2d(1.7, 0.5),
                 Translation2d(0.75, 0.75),
                 Translation2d(2.0, 0.0),
                 Translation2d(0.0, 1.0),

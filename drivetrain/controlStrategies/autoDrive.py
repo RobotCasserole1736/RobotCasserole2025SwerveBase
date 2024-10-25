@@ -14,7 +14,7 @@ from utils.allianceTransformUtils import transform
 # Maximum speed that we'll attempt to path plan at. Needs to be at least 
 # slightly less than the maximum physical speed, so the robot can "catch up" 
 # if it gets off the planned path
-MAX_PATHPLAN_SPEED_MPS = 0.85 * MAX_DT_LINEAR_SPEED_MPS
+MAX_PATHPLAN_SPEED_MPS = 0.75 * MAX_DT_LINEAR_SPEED_MPS
 
 class AutoDrive(metaclass=Singleton):
     def __init__(self):

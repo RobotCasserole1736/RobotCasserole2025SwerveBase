@@ -140,9 +140,9 @@ ROBOT_TO_RIGHT_CAM = Transform3d(
 
 ROBOT_TO_FRONT_CAM = Transform3d(
     Translation3d(
-        inchesToMeters(12.0), inchesToMeters(0.0), inchesToMeters(20.0)  # X  # Y  # Z
+        inchesToMeters(14.5), inchesToMeters(2.75), inchesToMeters(8)  # X  # Y  # Z
     ),
-    Rotation3d(0.0, -20.0, 0.0),  # Roll  # Pitch  # Yaw
+    Rotation3d(0.0, 0.0, 0.0),  # Roll  # Pitch  # Yaw
 )
 
 
