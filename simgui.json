@@ -57,7 +57,14 @@
           "width": 0.5
         },
         "Robot": {
-          "style": "Line (Closed)"
+          "color": [
+            1.0,
+            0.4117647409439087,
+            0.0,
+            255.0
+          ],
+          "style": "Box/Image",
+          "weight": 2.0
         },
         "bottom": 1476,
         "curObstacles": {
