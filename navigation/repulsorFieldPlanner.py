@@ -93,12 +93,19 @@ class RepulsorFieldPlanner:
     Finally, the planner will recommend a step of fixed size, in the direction the net force pushes on.
     """
     def __init__(self):
+        # Set up the list of obstacles which are present on the field always
         self.fixedObstacles:list[ForceGenerator] = []
         self.fixedObstacles.extend(FIELD_OBSTACLES_2024)
         self.fixedObstacles.extend(WALLS)
+
+        # Init the obstacle lists which go away over time
         self.transientObstcales:list[ForceGenerator] = []
+
+        # Track the goal, the distance to the goal, and the initial acceleration limiter
         self.distToGo:float = 0.0
         self.goal:Pose2d|None = None
+
+        # Track the "lookahead" - a series of steps predicting where we will go next
         self.lookaheadTraj:list[Pose2d] = []
 
         #addLog("PotentialField Num Obstacles", lambda: (len(self.fixedObstacles) + len(self.transientObstcales)))
