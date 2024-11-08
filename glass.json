@@ -1,0 +1,98 @@
+{
+  "NetworkTables": {
+    "types": {
+      "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/DT Pose 2D": "Field2d"
+    },
+    "windows": {
+      "/SmartDashboard/DT Pose 2D": {
+        "ModulePoses": {
+          "color": [
+            255.0,
+            157.5,
+            0.0,
+            255.0
+          ],
+          "image": "C:\\Users\\chris\\git\\RobotCasseroleSwerveBase2025\\swerve_module.png",
+          "length": 0.4000000059604645,
+          "weight": 2.0,
+          "width": 0.4000000059604645
+        },
+        "Robot": {
+          "color": [
+            255.0,
+            202.50001525878906,
+            0.0,
+            255.0
+          ]
+        },
+        "curObstacles": {
+          "image": "C:\\Users\\chris\\git\\RobotCasseroleSwerveBase2025\\obstacle.png",
+          "length": 0.6000000238418579,
+          "width": 0.6000000238418579
+        },
+        "desPose": {
+          "arrows": false
+        },
+        "height": 8.013679504394531,
+        "visionObservations": {
+          "arrowWeight": 1.0,
+          "arrows": false,
+          "color": [
+            0.22049212455749512,
+            0.6078431606292725,
+            0.58505779504776,
+            255.0
+          ],
+          "weight": 6.0
+        },
+        "width": 16.541748046875,
+        "window": {
+          "visible": true
+        }
+      }
+    }
+  },
+  "NetworkTables Info": {
+    "JSClient_33109861@3": {
+      "Publishers": {
+        "open": false
+      },
+      "Subscribers": {
+        "open": false
+      },
+      "open": false
+    },
+    "JSClient_52050899@2": {
+      "Publishers": {
+        "open": false
+      },
+      "Subscribers": {
+        "open": false
+      },
+      "open": false
+    },
+    "JSClient_75908461@3": {
+      "Subscribers": {
+        "open": false
+      },
+      "open": false
+    },
+    "glass@3": {
+      "open": false
+    },
+    "photonvision@1": {
+      "Publishers": {
+        "open": false
+      }
+    },
+    "photonvision@2": {
+      "open": false
+    },
+    "visible": true
+  },
+  "NetworkTables Settings": {
+    "mode": "Client (NT4)",
+    "serverTeam": "1736"
+  }
+}
