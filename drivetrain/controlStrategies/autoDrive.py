@@ -28,10 +28,10 @@ class AutoDrive(metaclass=Singleton):
         self._olCmd = DrivetrainCommand()
         self._prevCmd:DrivetrainCommand|None = None
         self._plannerDur:float = 0.0
-        self.autoPrevEnabled = False #This name might be a wee bit confusing. It just keeps track if we were in auto last refresh.
+        self.autoSpeakerPrevEnabled = False #This name might be a wee bit confusing. It just keeps track if we were in auto targeting the speaker last refresh.
+        self.autoPickupPrevEnabled = False #This name might be a wee bit confusing. It just keeps track if we were in auto targeting the speaker last refresh.
         self.stuckTracker = 0 
         self.prevPose = Pose2d()
-        
 
         addLog("AutoDrive Proc Time", lambda:(self._plannerDur * 1000.0), "ms")
 
@@ -40,12 +40,10 @@ class AutoDrive(metaclass=Singleton):
         self._toSpeaker = toSpeaker
         self._toPickup = toPickup
         #The following if statement is just logic to enable self.autoPrevEnabled when the driver enables an auto.
-        if self._toSpeaker == True or self._toPickup == True:
-            if self.autoPrevEnabled == False:
-                self.stuckTracker = 0 
-            self.autoPrevEnabled = True
-        if self._toSpeaker == False and self._toPickup == False:
-            self.autoPrevEnabled = False
+        if self.autoSpeakerPrevEnabled != self._toSpeaker or self.autoPickupPrevEnabled != self._toPickup:
+            self.stuckTracker = 0
+        self.autoPickupPrevEnabled = self._toPickup
+        self.autoSpeakerPrevEnabled = self._toSpeaker
         
 
     def updateTelemetry(self) -> None:        
