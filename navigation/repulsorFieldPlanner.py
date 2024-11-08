@@ -108,6 +108,11 @@ class RepulsorFieldPlanner:
         # Track the "lookahead" - a series of steps predicting where we will go next
         self.lookaheadTraj:list[Pose2d] = []
 
+        #these actually aren't going to have any forces attached to them, it's just going to be for the graphics
+        self.fullTransientObstacles = []
+        self.thirdTransientObstacles = []
+        self.almostGoneTransientObstacles = []
+
         # Keep things slow right when the goal changes
         self.startSlowFactor = 0.0
 
@@ -160,6 +165,22 @@ class RepulsorFieldPlanner:
         # Only keep obstacles with positive strength
         # Fully decayed obstacles have zero or negative strength.
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
+
+    def getObstacleStrengths(self):
+        #these are all Translation 2ds, or should be, but we can't say that if we want to return all 3. 
+        fullTransientObstacles = []
+        thirdTransientObstacles = []
+        almostGoneTransientObstacles = []
+        
+        for x in self.transientObstcales:
+            if x.strength > .5:
+                fullTransientObstacles.extend(x.getTelemTrans())
+            elif x.strength > .33:
+                thirdTransientObstacles.extend(x.getTelemTrans())
+            else:
+                almostGoneTransientObstacles.extend(x.getTelemTrans())
+
+        return fullTransientObstacles, thirdTransientObstacles, almostGoneTransientObstacles
 
     def getObstacleTransList(self) -> list[Translation2d]:
         """
