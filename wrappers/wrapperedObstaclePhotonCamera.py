@@ -25,7 +25,7 @@ def _calculateDistanceToTargetMeters(
     using right triangles, the assumption obstacles are on the ground, and the geometry
     of where the camera is mounted on the robot.
     """
-    netAngle = cameraPitchRadians + targetPitchRadians
+    netAngle = -1.0 * cameraPitchRadians + targetPitchRadians
 
     # Even if there's some error in measurement, be sure the angle puts the target 
     # in the right place.
@@ -91,7 +91,7 @@ class WrapperedObstaclePhotonCamera:
         for target in res.getTargets():
             # Transform both poses to on-field poses
             if (target.getArea()>MIN_AREA):
-                print(f"Saw target at pitch {target.getPitch()} deg, yaw {target.getYaw()} deg")
+                #print(f"Saw target at pitch {target.getPitch()} deg, yaw {target.getYaw()} deg")
                 # Use algorithm described at 
                 # https://docs.limelightvision.io/docs/docs-limelight/tutorials/tutorial-estimating-distance
                 # to estimate distance from the camera to the target.
@@ -106,7 +106,7 @@ class WrapperedObstaclePhotonCamera:
                     Rotation2d.fromDegrees(target.getYaw())
                 )
                 camToObstacleTransform = Transform2d(camToObstacleTranslation, Rotation2d())
-                print(f"Saw big target at {camToObstacleTransform}")
+                #print(f"Saw big target at {camToObstacleTransform}")
 
                 self.obstacleEstimates.append(camToObstacleTransform)
 
