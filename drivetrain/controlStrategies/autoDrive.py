@@ -10,6 +10,7 @@ from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
 from navigation.navConstants import GOAL_PICKUP, GOAL_SPEAKER
 from drivetrain.drivetrainPhysical import MAX_DT_LINEAR_SPEED_MPS
 from utils.allianceTransformUtils import transform
+import math
 
 # Maximum speed that we'll attempt to path plan at. Needs to be at least 
 # slightly less than the maximum physical speed, so the robot can "catch up" 
@@ -27,6 +28,10 @@ class AutoDrive(metaclass=Singleton):
         self._olCmd = DrivetrainCommand()
         self._prevCmd:DrivetrainCommand|None = None
         self._plannerDur:float = 0.0
+        self.autoPrevEnabled = False #This name might be a wee bit confusing. It just keeps track if we were in auto last refresh.
+        self.stuckTracker = 0 
+        self.prevPose = Pose2d()
+        
 
         addLog("AutoDrive Proc Time", lambda:(self._plannerDur * 1000.0), "ms")
 
@@ -34,6 +39,14 @@ class AutoDrive(metaclass=Singleton):
     def setRequest(self, toSpeaker, toPickup) -> None:
         self._toSpeaker = toSpeaker
         self._toPickup = toPickup
+        #The following if statement is just logic to enable self.autoPrevEnabled when the driver enables an auto.
+        if self._toSpeaker == True or self._toPickup == True:
+            if self.autoPrevEnabled == False:
+                self.stuckTracker = 0 
+            self.autoPrevEnabled = True
+        if self._toSpeaker == False and self._toPickup == False:
+            self.autoPrevEnabled = False
+        
 
     def updateTelemetry(self) -> None:        
         self._telemTraj = self.rfp.getLookaheadTraj()
@@ -48,6 +61,7 @@ class AutoDrive(metaclass=Singleton):
         return self.rfp.goal != None
 
     def update(self, cmdIn: DrivetrainCommand, curPose: Pose2d) -> DrivetrainCommand:
+        
 
         startTime = Timer.getFPGATimestamp()
 
@@ -69,6 +83,13 @@ class AutoDrive(metaclass=Singleton):
         # If being asked to auto-align, use the command from the dynamic path planner
         if(self._toPickup or self._toSpeaker):
 
+            #This checks how much we moved, and if we moved less than one cm it increments the counter by one.
+            if math.sqrt(((curPose.X() - self.prevPose.X()) ** 2) + ((curPose.Y() - self.prevPose.Y()) ** 2)) < .01:
+                self.stuckTracker += 1
+            else:
+                if self.stuckTracker > 0:
+                    self.stuckTracker -= 1
+
             # Open Loop - Calculate the new desired pose and velocity to get there from the 
             # repulsor field path planner
             if(self._prevCmd is None or self._prevCmd.desPose is None):
@@ -88,5 +109,11 @@ class AutoDrive(metaclass=Singleton):
             self._prevCmd = None
 
         self._plannerDur = Timer.getFPGATimestamp() - startTime
+
+        #Set our curPos as the new old pose
+        self.prevPose = curPose
+        #assume that we are either stuck or done if the counter reaches above 10. (sometimes it will get to like 4 when we are accelerating or taking a sharp turn)
+        if self.stuckTracker >= 10:
+            retCmd = cmdIn #set the returned cmd to the cmd that we were originally given.
 
         return retCmd

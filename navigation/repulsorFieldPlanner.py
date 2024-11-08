@@ -36,15 +36,7 @@ FIELD_OBSTACLES_2024 = [
     PointObstacle(location=Translation2d(11.0, 2.74)),
     PointObstacle(location=Translation2d(13.27, 4.07)),
     PointObstacle(location=Translation2d(11.0, 5.35)),
-    PointObstacle(location=Translation2d(0, 0)),
-    PointObstacle(location=Translation2d(10.0, 5.35)),
-    PointObstacle(location=Translation2d(10.5, 6.35)),
-    PointObstacle(location=Translation2d(10.5, 5.35)),
-    PointObstacle(location=Translation2d(10.0, 5.35)),
-    PointObstacle(location=Translation2d(10.0, 5.85)),
-    PointObstacle(location=Translation2d(11.0, 5.85)),
-    PointObstacle(location=Translation2d(11.0, 6.35)),
-    PointObstacle(location=Translation2d(10.0, 6.35)),
+    PointObstacle(location=Translation2d(0, 0))
 ]
 
 # Fixed Obstacles - Outer walls of the field 
@@ -304,23 +296,10 @@ class RepulsorFieldPlanner:
         if(self.goal is not None):
             cp = curPose
             self.lookaheadTraj.append(cp)
-            self.stuckStrikes = 0
-
-            """
             
-            Current Solution for detecting if we are stuck doesn't work. I think we can fix it by moving it to the function that calls this one and having that function test if the average change in position is bellow a threshhold for too many attempts
-            
-            """
             for _ in range(0,LOOKAHEAD_STEPS):
                 tmp = self._getCmd(cp, LOOKAHEAD_STEP_SIZE)
                 if(tmp.desPose is not None):
-                    """
-                    Check to see if the change in position between the current position and the position of the goal of the command from the lookahead is below a certain percentage of the step size
-                        if they are similar increment a "Strike" counter
-                    
-                    """
-                    if math.sqrt(((cp.X() - tmp.desPose.X() )** 2) + ((cp.Y() - tmp.desPose.Y())** 2) ) <= LOOKAHEAD_STEP_SIZE * .5: #If the total change in position is less than five percent of the lookahead step size
-                        self.stuckStrikes += 1
 
                     cp = tmp.desPose
                     self.lookaheadTraj.append(cp)
@@ -329,17 +308,9 @@ class RepulsorFieldPlanner:
                         # At the goal, no need to keep looking ahead
                         break
 
-                    """
-                    If we get 3 strikes (Or some arbitrary number of strikes or a percentage of the LOOKAHEAD_STEPS value) then we're 'out' and well say that its safe to assume that we are stuck
-                    """
-
-                    if self.stuckStrikes >= 3:
-                        break
-
                 else:
                     # Weird, no pose given back, give up.
                     break
-            print(self.stuckStrikes)
 
     def getLookaheadTraj(self) -> list[Pose2d]:
         """
