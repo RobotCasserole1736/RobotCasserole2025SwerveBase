@@ -1,7 +1,7 @@
 
 from wrappers.wrapperedObstaclePhotonCamera import WrapperedObstaclePhotonCamera
 from drivetrain.drivetrainPhysical import ROBOT_TO_FRONT_CAM
-from wpimath.geometry import Pose2d
+from wpimath.geometry import Pose2d, Pose3d
 from navigation.forceGenerators import ForceGenerator, PointObstacle
 
 class ObstacleDetector():
@@ -19,8 +19,9 @@ class ObstacleDetector():
 
         self.frontCam.update()
         for obs in self.frontCam.getObstacles():
-            obsPose = curPose.translation() + obs
-            retList.append(PointObstacle(location=obsPose, strength=0.7))
+            camPose = Pose3d(curPose).transformBy(ROBOT_TO_FRONT_CAM).toPose2d()
+            obsTrans = camPose.transformBy(obs)
+            retList.append(PointObstacle(location=obsTrans.translation(), strength=0.7))
         
         # TODO - add other cameras and their observations
 
