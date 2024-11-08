@@ -60,7 +60,33 @@
           "style": "Line (Closed)"
         },
         "bottom": 1476,
-        "curObstacles": {
+        "curObstaclesAlmostGone": {
+          "arrows": false,
+          "color": [
+            255.0,
+            0.0,
+            232.50010681152344,
+            255.0
+          ],
+          "length": 0.6859999895095825,
+          "selectable": false,
+          "style": "Box/Image",
+          "weight": 5.0
+        },
+        "curObstaclesFull": {
+          "arrows": false,
+          "color": [
+            0.18339098989963531,
+            0.19835130870342255,
+            0.3529411554336548,
+            255.0
+          ],
+          "length": 0.6859999895095825,
+          "selectable": false,
+          "style": "Box/Image",
+          "weight": 5.0
+        },
+        "curObstaclesThird": {
           "arrows": false,
           "color": [
             0.5098038911819458,
@@ -68,11 +94,10 @@
             0.02998846210539341,
             255.0
           ],
-          "image": "obstacle.png",
           "length": 0.6859999895095825,
           "selectable": false,
           "style": "Box/Image",
-          "weight": 16.0
+          "weight": 5.0
         },
         "desTraj": {
           "arrowColor": [
@@ -141,6 +166,9 @@
         "open": true
       },
       "SmartDashboard": {
+        "DT Pose 2D": {
+          "open": true
+        },
         "open": true
       }
     }

@@ -101,6 +101,11 @@ class RepulsorFieldPlanner:
         self.goal:Pose2d|None = None
         self.lookaheadTraj:list[Pose2d] = []
 
+        #these actually aren't going to have any forces attached to them, it's just going to be for the graphics
+        self.fullTransientObstacles = []
+        self.thirdTransientObstacles = []
+        self.almostGoneTransientObstacles = []
+
         #addLog("PotentialField Num Obstacles", lambda: (len(self.fixedObstacles) + len(self.transientObstcales)))
         #addLog("PotentialField Path Active", lambda: (self.goal is not None))
         #addLog("PotentialField DistToGo", lambda: self.distToGo, "m")
@@ -147,6 +152,22 @@ class RepulsorFieldPlanner:
         # Only keep obstacles with positive strength
         # Fully decayed obstacles have zero or negative strength.
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
+
+    def getObstacleStrengths(self):
+        #these are all Translation 2ds, or should be, but we can't say that if we want to return all 3. 
+        fullTransientObstacles = []
+        thirdTransientObstacles = []
+        almostGoneTransientObstacles = []
+        
+        for x in self.transientObstcales:
+            if x.strength > .5:
+                fullTransientObstacles.extend(x.getTelemTrans())
+            elif x.strength > .33:
+                thirdTransientObstacles.extend(x.getTelemTrans())
+            else:
+                almostGoneTransientObstacles.extend(x.getTelemTrans())
+
+        return fullTransientObstacles, thirdTransientObstacles, almostGoneTransientObstacles
 
     def getObstacleTransList(self) -> list[Translation2d]:
         """
