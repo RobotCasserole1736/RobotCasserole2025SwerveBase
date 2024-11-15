@@ -74,13 +74,13 @@ class WrapperedSparkMax:
         
         self.disconFault.set(not self.configSuccess)
 
-        addLog(self.name + "_outputCurrent", self.ctrl.getOutputCurrent, "A")
+        #addLog(self.name + "_outputCurrent", self.ctrl.getOutputCurrent, "A")
         #addLog(self.name + "_appliedOutput", self.ctrl.getAppliedOutput, "%")
-        addLog(self.name + "_desVolt", lambda: self.desVolt, "V")
+        #addLog(self.name + "_desVolt", lambda: self.desVolt, "V")
         #addLog(self.name + "_desPos", lambda: self.desPos, "rad")
         #addLog(self.name + "_desVel", lambda: self.desVel, "RPM")
-        addLog(self.name + "_actPos", lambda: self.actPos, "rad")
-        addLog(self.name + "_actVel", lambda: self.actVel, "RPM")
+        #addLog(self.name + "_actPos", lambda: self.actPos, "rad")
+        #addLog(self.name + "_actVel", lambda: self.actVel, "RPM")
 
 
     def setInverted(self, isInverted):

@@ -96,25 +96,43 @@ class RepulsorFieldPlanner:
     Finally, the planner will recommend a step of fixed size, in the direction the net force pushes on.
     """
     def __init__(self):
+        # Set up the list of obstacles which are present on the field always
         self.fixedObstacles:list[ForceGenerator] = []
         self.fixedObstacles.extend(FIELD_OBSTACLES_2024)
         self.fixedObstacles.extend(WALLS)
+
+        # Init the obstacle lists which go away over time
         self.transientObstcales:list[ForceGenerator] = []
+
+        # Track the goal, the distance to the goal, and the initial acceleration limiter
         self.distToGo:float = 0.0
         self.goal:Pose2d|None = None
+
+        # Track the "lookahead" - a series of steps predicting where we will go next
         self.lookaheadTraj:list[Pose2d] = []
+
+        #these actually aren't going to have any forces attached to them, it's just going to be for the graphics
+        self.fullTransientObstacles = []
+        self.thirdTransientObstacles = []
+        self.almostGoneTransientObstacles = []
+
+        # Keep things slow right when the goal changes
+        self.startSlowFactor = 0.0
 
         #addLog("PotentialField Num Obstacles", lambda: (len(self.fixedObstacles) + len(self.transientObstcales)))
         #addLog("PotentialField Path Active", lambda: (self.goal is not None))
         #addLog("PotentialField DistToGo", lambda: self.distToGo, "m")
 
-    def setGoal(self, goal:Pose2d|None):
+    def setGoal(self, nextGoal:Pose2d|None):
         """
         Sets the current goal pose of the planner. This can be changed at any time.
         Currently, A goal of None will cause the planner to not recommend any motion
         TODO: In the future, a goal of "None" might be able to imply "just move as far from obstacles as possible". 
         """
-        self.goal = goal
+        if(nextGoal != self.goal):
+            # New goal, reset the slow factor
+            self.startSlowFactor = 0.0
+        self.goal = nextGoal
 
     def addObstacleObservation(self, obs:ForceGenerator):
         """
@@ -150,6 +168,22 @@ class RepulsorFieldPlanner:
         # Only keep obstacles with positive strength
         # Fully decayed obstacles have zero or negative strength.
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
+
+    def getObstacleStrengths(self):
+        #these are all Translation 2ds, or should be, but we can't say that if we want to return all 3. 
+        fullTransientObstacles = []
+        thirdTransientObstacles = []
+        almostGoneTransientObstacles = []
+        
+        for x in self.transientObstcales:
+            if x.strength > .5:
+                fullTransientObstacles.extend(x.getTelemTrans())
+            elif x.strength > .33:
+                thirdTransientObstacles.extend(x.getTelemTrans())
+            else:
+                almostGoneTransientObstacles.extend(x.getTelemTrans())
+
+        return fullTransientObstacles, thirdTransientObstacles, almostGoneTransientObstacles
 
     def getObstacleTransList(self) -> list[Translation2d]:
         """
@@ -214,16 +248,22 @@ class RepulsorFieldPlanner:
 
         return netForce
     
-    def update(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
-        curCmd = self._getCmd(curPose, stepSize_m)
-        self._doLookahead(curPose)
-        return curCmd
+    def update(self, curCmd:DrivetrainCommand, stepSize_m:float) -> DrivetrainCommand:
 
-    def _getCmd(self, curPose:Pose2d, stepSize_m:float) -> DrivetrainCommand:
+        # Update the initial "don't start too fast" factor
+        self.startSlowFactor += 2.0 * Ts
+        self.startSlowFactor = min(self.startSlowFactor, 1.0)
+
+        nextCmd = self._getCmd(curCmd, stepSize_m)
+        self._doLookahead(curCmd)
+        return nextCmd
+
+    def _getCmd(self, curCmd:DrivetrainCommand, stepSize_m:float) -> DrivetrainCommand:
         """
         Given a starting pose, and a maximum step size to take, produce a drivetrain command which moves the robot in the best direction
         """
         retVal = DrivetrainCommand() # Default, no command
+        curPose = curCmd.desPose
 
         if(self.goal is not None):
             curTrans = curPose.translation()
@@ -268,7 +308,7 @@ class RepulsorFieldPlanner:
                 totalStep = totalStep * (1.0/totalStep.norm())
 
                 # Then, Scale totalStep to the right size
-                totalStep *= (stepSize_m * slowFactor)
+                totalStep *= (stepSize_m * slowFactor * self.startSlowFactor)
 
                 # Periodic loops run at Ts sec/loop
                 retVal.velX = totalStep.X() / Ts
@@ -288,28 +328,23 @@ class RepulsorFieldPlanner:
         
         return retVal
     
-    def _doLookahead(self, curPose):
+    def _doLookahead(self, curCmd:DrivetrainCommand):
         """
         Perform the lookahead operation - Plan ahead out to a maximum distance, or until we detect we are stuck
         """
+
         self.lookaheadTraj = []
         if(self.goal is not None):
-            cp = curPose
-            self.lookaheadTraj.append(cp)
-            
+            cc = curCmd
+            self.lookaheadTraj.append(cc.desPose)
+
             for _ in range(0,LOOKAHEAD_STEPS):
-                tmp = self._getCmd(cp, LOOKAHEAD_STEP_SIZE)
-                if(tmp.desPose is not None):
+                tmp = self._getCmd(cc, LOOKAHEAD_STEP_SIZE)
+                cp = tmp.desPose
+                self.lookaheadTraj.append(cc.desPose)
 
-                    cp = tmp.desPose
-                    self.lookaheadTraj.append(cp)
-
-                    if((cp - self.goal).translation().norm() < LOOKAHEAD_STEP_SIZE):
-                        # At the goal, no need to keep looking ahead
-                        break
-
-                else:
-                    # Weird, no pose given back, give up.
+                if((cp - self.goal).translation().norm() < LOOKAHEAD_STEP_SIZE):
+                    # At the goal, no need to keep looking ahead
                     break
 
     def getLookaheadTraj(self) -> list[Pose2d]:

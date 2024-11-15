@@ -42,7 +42,7 @@ class RIOMonitor:
         self.intDiskUsage = 0
         self.extDiskUsage = 0
 
-        addLog("RIO Supply Voltage", RobotController.getInputVoltage, "V")
+        #addLog("RIO Supply Voltage", RobotController.getInputVoltage, "V")
         #addLog("RIO CAN Bus Usage", lambda: self.CANBusUsage, "pct")
         #addLog(
         #    "RIO CAN Bus Err Count",

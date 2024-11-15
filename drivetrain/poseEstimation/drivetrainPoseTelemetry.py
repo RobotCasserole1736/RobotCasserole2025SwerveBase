@@ -21,7 +21,9 @@ class DrivetrainPoseTelemetry:
         wpilib.SmartDashboard.putData("DT Pose 2D", self.field)
         self.curTraj = Trajectory()
         self.curTrajWaypoints = []
-        self.obstacles = []
+        self.fullObstacles = []
+        self.thirdObstacles = []
+        self.almostGoneObstacles = []
 
         self.desPose = Pose2d()
 
@@ -55,8 +57,8 @@ class DrivetrainPoseTelemetry:
             for obs in observations:
                 self.visionPoses.append(obs.estFieldPose)
 
-    def setCurObstacles(self, obstacles:list[Translation2d]):
-        self.obstacles = obstacles
+    def setCurObstacles(self, obstacles):
+        self.fullObstacles, self.thirdObstacles, self.almostGoneObstacles = obstacles
 
     def clearVisionObservations(self):
         self.visionPoses = []
@@ -75,7 +77,13 @@ class DrivetrainPoseTelemetry:
         self.field.getObject("desPose").setPose(self.desPose)
         self.field.getObject("desTraj").setTrajectory(self.curTraj)
         self.field.getObject("desTrajWaypoints").setPoses(self.curTrajWaypoints)
-        self.field.getObject("curObstacles").setPoses([Pose2d(x, Rotation2d()) for x in self.obstacles])
+        self.field.getObject("curObstaclesFull").setPoses([Pose2d(x, Rotation2d()) for x in self.fullObstacles])
+        self.field.getObject("curObstaclesThird").setPoses([Pose2d(x, Rotation2d()) for x in self.thirdObstacles])
+        self.field.getObject("curObstaclesAlmostGone").setPoses([Pose2d(x, Rotation2d()) for x in self.almostGoneObstacles])
+        #print("Full: " + str(len(self.fullObstacles)))
+        #print("Third: " + str(len(self.thirdObstacles)))
+        #print("Almost gone: " + str(len(self.almostGoneObstacles)))
+
 
         self.field.getObject("visionObservations").setPoses(self.visionPoses)
         self.visionPoses = []

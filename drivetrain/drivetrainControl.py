@@ -93,11 +93,7 @@ class DrivetrainControl(metaclass=Singleton):
         self.desChSpd = _discretizeChSpd(tmp)
 
         # Set the desired pose for telemetry purposes
-        if self.curCmd.desPose is not None:
-            desPose = self.curCmd.desPose
-        else:
-            desPose = curEstPose
-        self.poseEst._telemetry.setDesiredPose(desPose)
+        self.poseEst._telemetry.setDesiredPose(self.curCmd.desPose)
 
         # Given the current desired chassis speeds, convert to module states
         desModStates = kinematics.toSwerveModuleStates(self.desChSpd)

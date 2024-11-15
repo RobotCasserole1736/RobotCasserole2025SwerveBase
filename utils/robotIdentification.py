@@ -29,7 +29,7 @@ class RobotIdentification(metaclass=Singleton):
         if self.roboControl.getSerialNumber() == "030e2cb0":
             #Test to see if the RoboRio serial number is the main/"Production" bot.
             self.robotType = RobotTypes.Main 
-        elif self.roboControl.getSerialNumber() == "03064e3f":
+        elif self.roboControl.getSerialNumber() == "03064e3f" or wpilib.TimedRobot.isSimulation():
             #Test to see if the RoboRio serial number is the practice bot.
             self.robotType = RobotTypes.Practice
         elif self.roboControl.getSerialNumber() == "0316b37c":

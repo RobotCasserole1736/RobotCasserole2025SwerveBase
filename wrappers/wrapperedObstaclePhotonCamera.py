@@ -1,5 +1,5 @@
 import wpilib
-from wpimath.geometry import Pose2d, Transform3d, Rotation2d, Translation2d
+from wpimath.geometry import Pose2d, Transform3d, Rotation2d, Translation2d, Transform2d
 from wpimath.units import degreesToRadians
 from photonlibpy.photonCamera import PhotonCamera
 from photonlibpy.photonCamera import setVersionCheckEnabled
@@ -13,7 +13,7 @@ class CameraObstacleObservation:
         self.estFieldPose = estFieldPose
         self.trustworthiness = trustworthiness  # TODO - not used yet
 
-MIN_AREA=1.0 #idk tune this if we are reacting to small targets
+MIN_AREA= 0.2 #idk tune this if we are reacting to small targets
 
 def _calculateDistanceToTargetMeters(
         cameraHeightMeters:float,
@@ -25,15 +25,27 @@ def _calculateDistanceToTargetMeters(
     using right triangles, the assumption obstacles are on the ground, and the geometry
     of where the camera is mounted on the robot.
     """
-    return (targetHeightMeters - cameraHeightMeters) / math.tan(cameraPitchRadians + targetPitchRadians)
+    netAngle = -1.0 * cameraPitchRadians + targetPitchRadians
+
+    # Even if there's some error in measurement, be sure the angle puts the target 
+    # in the right place.
+    netAngle = min(netAngle, -0.000001)
+
+    return (targetHeightMeters - cameraHeightMeters) / math.tan(netAngle)
 
 
 def _estimateCameraToTargetTranslation(targetDistanceMeters:float, yaw:Rotation2d):
         """
         Utility to generate a Translation2d based on 
         """
-        return Translation2d(
-                yaw.cos() * targetDistanceMeters, yaw.sin() * targetDistanceMeters)
+        xPos = yaw.cos() * targetDistanceMeters
+        yPos =  -1.0 * yaw.sin() * targetDistanceMeters # Positive vision yaw is to the right
+
+        # Ensure target is in front of the camera
+        if(xPos < 0.0):
+            xPos = 0.0
+
+        return Translation2d(xPos, yPos)
 
 class WrapperedObstaclePhotonCamera:
     """
@@ -49,7 +61,7 @@ class WrapperedObstaclePhotonCamera:
 
         self.disconFault = Fault(f"Camera {camName} not sending data")
         self.timeoutSec = 1.0
-        self.obstacleEstimates:list[Translation2d] = []
+        self.obstacleEstimates:list[Transform2d] = []
         self.robotToCam = robotToCam
 
     def update(self):
@@ -65,15 +77,8 @@ class WrapperedObstaclePhotonCamera:
         # Note: Results simply report "I processed a frame". There may be 0 or more targets seen in a frame
         res = self.cam.getLatestResult()
 
-        # MiniHack - results also have a more accurate "getTimestamp()", but this is
-        # broken in photonvision 2.4.2. Hack with the non-broken latency calcualtion
-        latency = res.getLatencyMillis()
-        obsTime = wpilib.Timer.getFPGATimestamp()
-        
         # Update our disconnected fault since we have something from the camera
         self.disconFault.setNoFault()
-
-        print("got camera data")
 
         # Process each target.
         # Each target has multiple solutions for where you could have been at on the field
@@ -85,9 +90,8 @@ class WrapperedObstaclePhotonCamera:
         # don't make sense.
         for target in res.getTargets():
             # Transform both poses to on-field poses
-            print("saw target")
             if (target.getArea()>MIN_AREA):
-                print("big target")
+                #print(f"Saw target at pitch {target.getPitch()} deg, yaw {target.getYaw()} deg")
                 # Use algorithm described at 
                 # https://docs.limelightvision.io/docs/docs-limelight/tutorials/tutorial-estimating-distance
                 # to estimate distance from the camera to the target.
@@ -97,13 +101,14 @@ class WrapperedObstaclePhotonCamera:
                     self.robotToCam.rotation().Y(), # Pitch is rotation about the Y axis
                     degreesToRadians(target.getPitch())
                 )
-                camToObstacle = _estimateCameraToTargetTranslation(
+                camToObstacleTranslation = _estimateCameraToTargetTranslation(
                     dist,
                     Rotation2d.fromDegrees(target.getYaw())
                 )
-                print(f"{camToObstacle}")
-                
-                self.obstacleEstimates.append(camToObstacle)
+                camToObstacleTransform = Transform2d(camToObstacleTranslation, Rotation2d())
+                #print(f"Saw big target at {camToObstacleTransform}")
 
-    def getObstacles(self) -> list[Translation2d]:
+                self.obstacleEstimates.append(camToObstacleTransform)
+
+    def getObstacles(self) -> list[Transform2d]:
         return self.obstacleEstimates
