@@ -171,10 +171,14 @@ class RepulsorFieldPlanner:
 
     def getObstacleStrengths(self):
         #these are all Translation 2ds, or should be, but we can't say that if we want to return all 3. 
-        fullTransientObstacles = []
+        fullTransientObstacles =[]
         thirdTransientObstacles = []
         almostGoneTransientObstacles = []
         
+        # Fixed obstacles are full strength
+        for x in self.fixedObstacles:
+            fullTransientObstacles.extend(x.getTelemTrans())
+
         for x in self.transientObstcales:
             if x.strength > .5:
                 fullTransientObstacles.extend(x.getTelemTrans())
@@ -255,7 +259,7 @@ class RepulsorFieldPlanner:
         self.startSlowFactor = min(self.startSlowFactor, 1.0)
 
         nextCmd = self._getCmd(curCmd, stepSize_m)
-        self._doLookahead(curCmd)
+        # self._doLookahead(curCmd)
         return nextCmd
 
     def _getCmd(self, curCmd:DrivetrainCommand, stepSize_m:float) -> DrivetrainCommand:
