@@ -10,6 +10,8 @@ from navigation.navForce import Force
 from navigation.forceGenerators import HorizontalObstacle, ForceGenerator, PointObstacle, VerticalObstacle
 from utils.constants import FIELD_X_M, FIELD_Y_M
 
+import math
+
 # Relative strength of how hard the goal pulls the robot toward it
 # Too big and the robot will be pulled through obstacles
 # Too small and the robot will get stuck on obstacles ("local minima")
@@ -34,6 +36,7 @@ FIELD_OBSTACLES_2024 = [
     PointObstacle(location=Translation2d(11.0, 2.74)),
     PointObstacle(location=Translation2d(13.27, 4.07)),
     PointObstacle(location=Translation2d(11.0, 5.35)),
+    PointObstacle(location=Translation2d(0, 0))
 ]
 
 # Fixed Obstacles - Outer walls of the field 
