@@ -50,7 +50,7 @@ class ForceGenerator:
         Returns the distance (in meters) between the object and a given position
         """
         return float('inf')
-    def getTelemTrans(self)->list[Translation2d]:
+    def getTrans(self)->list[Translation2d]:
         """
         return all x/y positions associated with this field force generating object
         """
@@ -78,7 +78,7 @@ class PointObstacle(ForceGenerator):
     def getDist(self, position:Translation2d)->float:
         return (position - self.location).norm()
 
-    def getTelemTrans(self) -> list[Translation2d]:
+    def getTrans(self) -> list[Translation2d]:
         return [self.location]
 
 
@@ -100,7 +100,7 @@ class HorizontalObstacle(ForceGenerator):
     def getDist(self, position: Translation2d) -> float:
         return abs(position.y - self.y)
     
-    def getTelemTrans(self) -> list[Translation2d]:
+    def getTrans(self) -> list[Translation2d]:
         return [
             Translation2d(0,self.y),
             Translation2d(FIELD_X_M,self.y),
@@ -123,7 +123,7 @@ class VerticalObstacle(ForceGenerator):
     def getDist(self, position: Translation2d) -> float:
         return abs(position.x - self.x)
     
-    def getTelemTrans(self) -> list[Translation2d]:
+    def getTrans(self) -> list[Translation2d]:
         return [
             Translation2d(self.x,0),
             Translation2d(self.x,FIELD_Y_M),
@@ -166,7 +166,7 @@ class LinearForceGenerator(ForceGenerator):
     def getDist(self, position: Translation2d) -> float:
         return self._shortestTransToSegment(position).norm()
 
-    def getTelemTrans(self) -> list[Translation2d]:
+    def getTrans(self) -> list[Translation2d]:
         return [
             self.start,
             self.end

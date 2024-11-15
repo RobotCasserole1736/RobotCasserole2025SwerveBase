@@ -141,7 +141,7 @@ class MyRobot(wpilib.TimedRobot):
                 Translation2d(0.0, -1.0),
             ]
             for tf in tfs:
-                obs = PointObstacle(location=(ct+tf), strength=0.7)
+                obs = PointObstacle(location=(ct+tf), strength=0.5)
                 self.autodrive.rfp.addObstacleObservation(obs)
 
         self.autodrive.setRequest(self.dInt.getNavToSpeaker(), self.dInt.getNavToPickup())

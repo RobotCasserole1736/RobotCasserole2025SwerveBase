@@ -4,6 +4,7 @@ from wpimath.geometry import Pose2d, Translation2d, Rotation2d
 from utils.mapLookup2d import MapLookup2D
 from utils.mathUtils import limit
 from utils.signalLogging import addLog
+from collections import deque
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
 
@@ -19,7 +20,7 @@ import math
 GOAL_STRENGTH = 0.04
 
 # Maximum number of obstacles we will remember. Older obstacles are automatically removed from our memory
-MAX_OBSTACLES = 20
+MAX_OBSTACLES = 10
 
 # Rate at which transient obstacles decay in strength
 # Bigger numbers here make transient obstacles disappear faster
@@ -103,7 +104,8 @@ class RepulsorFieldPlanner:
         self.fixedObstacles.extend(WALLS)
 
         # Init the obstacle lists which go away over time
-        self.transientObstcales:list[ForceGenerator] = []
+        # Right now only point obstacles supported for these
+        self.transientObstcales:deque[PointObstacle] = deque(maxlen=MAX_OBSTACLES)
 
         # Track the goal, the distance to the goal, and the initial acceleration limiter
         self.distToGo:float = 0.0
@@ -135,13 +137,30 @@ class RepulsorFieldPlanner:
             self.startSlowFactor = 0.0
         self.goal = nextGoal
 
-    def addObstacleObservation(self, obs:ForceGenerator):
+    def addObstacleObservation(self, obs:PointObstacle):
         """
         Call this to report a new, transient obstacle observed on the field.
+        Right now, only point obstacles supported
         """
-        self.transientObstcales.append(obs)
-        while len(self.transientObstcales) > MAX_OBSTACLES:
-            self.transientObstcales.pop(0)
+
+        alreadyKnown = False
+
+        # First, check if there's an existing obstacle close to it
+        for existingObs in self.transientObstcales:
+            dist  = (obs.getTrans()[0] - existingObs.getTrans()[0]).norm()
+            if (dist < 0.25):
+                # We're within half a meter of an existing obstacle. Let's just assume it's the same one and 
+                # move that existing one to that location.
+                existingObs.strength = obs.strength
+                existingObs.location = obs.location
+                alreadyKnown = True
+                break
+
+        # However, if this is a new one, append it into the list
+        if(not alreadyKnown):
+            self.transientObstcales.append(obs)
+            # Note - the deque is implemented to automatically discard from the "left" side (oldest)
+            # If we grow it past the max number of tracked obstacles.
 
     def getGoalForce(self, curLocation:Translation2d) -> Force:
         """
@@ -163,12 +182,18 @@ class RepulsorFieldPlanner:
         This function decays the obstacle's strength, and removes obstacles which have zero strength.
         It should be called once per periodic loop.
         """
+        obsToRemove = []
+
+        # Decay obstacles, tracking which ones to remove
         for obs in self.transientObstcales:
             obs.strength -= TRANSIENT_OBS_DECAY_PER_LOOP
+            if(obs.strength <= 0.0):
+                # fully decayed obstacle, remove.
+                obsToRemove.append(obs)
 
-        # Only keep obstacles with positive strength
-        # Fully decayed obstacles have zero or negative strength.
-        self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
+        # Remove all fully-decayed obstacles
+        for obs in obsToRemove:
+            self.transientObstcales.remove(obs)
 
     def getObstacleStrengths(self) -> tuple[list[Translation2d], list[Translation2d], list[Translation2d], list[Translation2d]]:
         #these are all Translation 2ds, or should be, but we can't say that if we want to return all 4. 
@@ -179,16 +204,16 @@ class RepulsorFieldPlanner:
         
         # Fixed obstacles
         for x in self.fixedObstacles:
-            fixedObstacleTranslations.extend(x.getTelemTrans())
+            fixedObstacleTranslations.extend(x.getTrans())
 
         # Transient Obstacles
         for x in self.transientObstcales:
             if x.strength > .5:
-                fullTransientObstacleTranslations.extend(x.getTelemTrans())
+                fullTransientObstacleTranslations.extend(x.getTrans())
             elif x.strength > .33:
-                thirdTransientObstacleTranslations.extend(x.getTelemTrans())
+                thirdTransientObstacleTranslations.extend(x.getTrans())
             else:
-                almostGoneTransientObstacleTranslations.extend(x.getTelemTrans())
+                almostGoneTransientObstacleTranslations.extend(x.getTrans())
 
         return fixedObstacleTranslations, fullTransientObstacleTranslations, thirdTransientObstacleTranslations, almostGoneTransientObstacleTranslations
 
@@ -199,9 +224,9 @@ class RepulsorFieldPlanner:
         """
         retArr = []
         for obstacle in self.fixedObstacles:
-            retArr.extend(obstacle.getTelemTrans())
+            retArr.extend(obstacle.getTrans())
         for obstacle in self.transientObstcales:
-            retArr.extend(obstacle.getTelemTrans())
+            retArr.extend(obstacle.getTrans())
 
         return retArr
     
@@ -268,7 +293,7 @@ class RepulsorFieldPlanner:
             # time expensive. We'll do it in simulation, but not on the
             # real robot.
             self._doLookahead(curCmd)
-            
+
         return nextCmd
 
     def _getCmd(self, curCmd:DrivetrainCommand, stepSize_m:float) -> DrivetrainCommand:

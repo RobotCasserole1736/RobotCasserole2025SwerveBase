@@ -21,7 +21,7 @@ class ObstacleDetector():
         for obs in self.frontCam.getObstacles():
             camPose = Pose3d(curPose).transformBy(ROBOT_TO_FRONT_CAM).toPose2d()
             obsTrans = camPose.transformBy(obs)
-            retList.append(PointObstacle(location=obsTrans.translation(), strength=0.7))
+            retList.append(PointObstacle(location=obsTrans.translation(), strength=0.5))
         
         # TODO - add other cameras and their observations
 
