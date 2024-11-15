@@ -166,25 +166,27 @@ class RepulsorFieldPlanner:
         # Fully decayed obstacles have zero or negative strength.
         self.transientObstcales = [x for x in self.transientObstcales if x.strength > 0.0]
 
-    def getObstacleStrengths(self):
-        #these are all Translation 2ds, or should be, but we can't say that if we want to return all 3. 
-        fullTransientObstacles =[]
-        thirdTransientObstacles = []
-        almostGoneTransientObstacles = []
+    def getObstacleStrengths(self) -> tuple[list[Translation2d], list[Translation2d], list[Translation2d], list[Translation2d]]:
+        #these are all Translation 2ds, or should be, but we can't say that if we want to return all 4. 
+        fixedObstacleTranslations = []
+        fullTransientObstacleTranslations =[]
+        thirdTransientObstacleTranslations = []
+        almostGoneTransientObstacleTranslations = []
         
-        # Fixed obstacles are full strength
+        # Fixed obstacles
         for x in self.fixedObstacles:
-            fullTransientObstacles.extend(x.getTelemTrans())
+            fixedObstacleTranslations.extend(x.getTelemTrans())
 
+        # Transient Obstacles
         for x in self.transientObstcales:
             if x.strength > .5:
-                fullTransientObstacles.extend(x.getTelemTrans())
+                fullTransientObstacleTranslations.extend(x.getTelemTrans())
             elif x.strength > .33:
-                thirdTransientObstacles.extend(x.getTelemTrans())
+                thirdTransientObstacleTranslations.extend(x.getTelemTrans())
             else:
-                almostGoneTransientObstacles.extend(x.getTelemTrans())
+                almostGoneTransientObstacleTranslations.extend(x.getTelemTrans())
 
-        return fullTransientObstacles, thirdTransientObstacles, almostGoneTransientObstacles
+        return fixedObstacleTranslations, fullTransientObstacleTranslations, thirdTransientObstacleTranslations, almostGoneTransientObstacleTranslations
 
     def getObstacleTransList(self) -> list[Translation2d]:
         """
