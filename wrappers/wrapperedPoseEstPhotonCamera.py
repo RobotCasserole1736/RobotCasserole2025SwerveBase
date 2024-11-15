@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 import wpilib
-from wpimath.units import feetToMeters
+from wpimath.units import feetToMeters, degreesToRadians
 from wpimath.geometry import Pose2d
 from photonlibpy.photonCamera import PhotonCamera
 from photonlibpy.photonCamera import setVersionCheckEnabled
@@ -7,11 +8,12 @@ from utils.fieldTagLayout import FieldTagLayout
 from utils.faults import Fault
 
 # Describes one on-field pose estimate from the a camera at a specific time.
+@dataclass
 class CameraPoseObservation:
-    def __init__(self, time, estFieldPose, trustworthiness=1.0):
-        self.time = time
-        self.estFieldPose = estFieldPose
-        self.trustworthiness = trustworthiness  # TODO - not used yet
+    time:float
+    estFieldPose:Pose2d
+    xyStdDev:float=1.0 # std dev of error in measurment, units of meters.
+    rotStdDev:float=degreesToRadians(50.0) # std dev of measurement, in units of radians
 
 # Wrappers photonvision to:
 # 1 - resolve issues with target ambiguity (two possible poses for each observation)
@@ -25,7 +27,7 @@ class WrapperedPoseEstPhotonCamera:
 
         self.disconFault = Fault(f"Camera {camName} not sending data")
         self.timeoutSec = 1.0
-        self.poseEstimates = []
+        self.poseEstimates:list[CameraPoseObservation] = []
         self.robotToCam = robotToCam
 
     def update(self, prevEstPose:Pose2d):
@@ -41,10 +43,11 @@ class WrapperedPoseEstPhotonCamera:
         # Note: Results simply report "I processed a frame". There may be 0 or more targets seen in a frame
         res = self.cam.getLatestResult()
 
-        # MiniHack - results also have a more accurate "getTimestamp()", but this is
+        # hack - results also have a more accurate "getTimestamp()", but this is
         # broken in photonvision 2.4.2. Hack with the non-broken latency calcualtion
-        latency = res.getLatencyMillis()
-        obsTime = wpilib.Timer.getFPGATimestamp()
+        # TODO: in 2025, fix this to actually use the real latency
+        latency = 0.05 # a total guess
+        obsTime = wpilib.Timer.getFPGATimestamp() - latency
         
 
         # Update our disconnected fault since we have something from the camera
@@ -95,6 +98,9 @@ class WrapperedPoseEstPhotonCamera:
 
                     # Finally, add our best candidate the list of pose observations
                     if bestCandidate is not None:
+                        # TODO: we can probably get better standard deviations than just
+                        # assuming the default. Check out what 254 did in 2024:
+                        # https://github.com/Team254/FRC-2024-Public/blob/040f653744c9b18182be5f6bc51a7e505e346e59/src/main/java/com/team254/frc2024/subsystems/vision/VisionSubsystem.java#L381
                         self.poseEstimates.append(
                             CameraPoseObservation(obsTime, bestCandidate)
                         )
