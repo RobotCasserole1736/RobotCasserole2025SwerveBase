@@ -71,7 +71,7 @@ class MyRobot(wpilib.TimedRobot):
 
         self.autodrive.updateTelemetry()
         self.driveTrain.poseEst._telemetry.setCurAutoDriveWaypoints(self.autodrive.getWaypoints())
-        #self.driveTrain.poseEst._telemetry.setCurObstacles(self.autodrive.rfp.getObstacleStrengths())
+        self.driveTrain.poseEst._telemetry.setCurObstacles(self.autodrive.rfp.getObstacleStrengths())
         self.stt.mark("Telemetry")
 
         self.ledCtrl.setAutoDrive(self.autodrive.isRunning())
