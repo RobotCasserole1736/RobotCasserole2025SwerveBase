@@ -113,5 +113,6 @@ class AutoDrive(metaclass=Singleton):
         #assume that we are either stuck or done if the counter reaches above 10. (sometimes it will get to like 4 when we are accelerating or taking a sharp turn)
         if self.stuckTracker >= 10:
             retCmd = cmdIn #set the returned cmd to the cmd that we were originally given.
+            self.stuckTracker += 1
 
         return retCmd
