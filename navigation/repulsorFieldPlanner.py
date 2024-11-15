@@ -1,3 +1,4 @@
+from wpilib import TimedRobot
 from wpimath.geometry import Pose2d, Translation2d, Rotation2d
 
 from utils.mapLookup2d import MapLookup2D
@@ -261,7 +262,13 @@ class RepulsorFieldPlanner:
         self.startSlowFactor = min(self.startSlowFactor, 1.0)
 
         nextCmd = self._getCmd(curCmd, stepSize_m)
-        # self._doLookahead(curCmd)
+
+        if(TimedRobot.isSimulation()):
+            # Lookahead is for telemetry and debug only, and is very
+            # time expensive. We'll do it in simulation, but not on the
+            # real robot.
+            self._doLookahead(curCmd)
+            
         return nextCmd
 
     def _getCmd(self, curCmd:DrivetrainCommand, stepSize_m:float) -> DrivetrainCommand:

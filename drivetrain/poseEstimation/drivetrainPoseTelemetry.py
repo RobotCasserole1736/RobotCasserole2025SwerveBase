@@ -82,10 +82,6 @@ class DrivetrainPoseTelemetry:
         self.field.getObject("curObstaclesFull").setPoses([Pose2d(x, Rotation2d()) for x in self.fullObstacles])
         self.field.getObject("curObstaclesThird").setPoses([Pose2d(x, Rotation2d()) for x in self.thirdObstacles])
         self.field.getObject("curObstaclesAlmostGone").setPoses([Pose2d(x, Rotation2d()) for x in self.almostGoneObstacles])
-        #print("Full: " + str(len(self.fullObstacles)))
-        #print("Third: " + str(len(self.thirdObstacles)))
-        #print("Almost gone: " + str(len(self.almostGoneObstacles)))
-
 
         self.field.getObject("visionObservations").setPoses(self.visionPoses)
         self.visionPoses = []
