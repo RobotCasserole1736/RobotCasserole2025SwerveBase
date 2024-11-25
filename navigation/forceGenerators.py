@@ -129,7 +129,7 @@ class VerticalObstacle(ForceGenerator):
             Translation2d(self.x,FIELD_Y_M),
         ]
 
-class LinearForceGenerator(ForceGenerator):
+class _LinearForceGenerator(ForceGenerator):
     """
     A linear force generator creates forces based on the relative position of the robot to a specific line segment
     """
@@ -172,7 +172,7 @@ class LinearForceGenerator(ForceGenerator):
             self.end
         ]
 
-class Lane(LinearForceGenerator):
+class Lane(_LinearForceGenerator):
     """
     A lane is an attractor - it creates a field force that pulls robots toward and along it, "ejecting" them out the far end.
     It helps as a "hint" when the robot needs to navigate in a specific way around obstacles, which is not necessarily straight toward the goal.
@@ -195,7 +195,7 @@ class Lane(LinearForceGenerator):
         return Force(unitX*forceMag, unitY*forceMag)
     
 
-class Wall(LinearForceGenerator):
+class Wall(_LinearForceGenerator):
     """
     Walls obstacles are finite lines between specific coordinates
     They push the robot away along a perpendicular direction.
