@@ -83,3 +83,52 @@ It is useful for marking certain areas of the field as "desireable" to travel th
 ### Goal (TODO)
 
 This class has not yet been added. The existing functionality is to apply a constant force in the direction of the goal itself. This should be moved into a more well-defined class.
+
+
+## Repulsor Field Planner
+
+### Transient Obstacles
+
+In general, transient obstacles decay in strength whenever they are not observed, eventually being removed once they have zero strength.
+
+Whenever an obstacle is observed by a camera, the existing list of obstacles is searched to find if any obstacles are close to the new observation. If so, the existing obstacle is reset to max strength, and moved into the observed position. If no obstacle is close enough, a new obstacle is added to the list.
+
+There is a maximum number of observed obstacles - if more than this max are observed, the oldest obstacle is removed from the list.
+
+Fixed obstacles must be tracked in a separate list, as they do not decay and are constant.
+
+### Path Traversal Speed
+
+Two "slowdown factors" are set up:
+
+1) Start Slow Factor - ramps from 0.0 up to 1.0 after the goal changes. This makes sure the commanded position slowly accelerates from a stop, providing a more realistic change in velocity.
+2) End Slow Factor - as the commanded position gets closer to the goal, the commanded speed reduces to slow the robot down as it approaches the goal.
+
+Other than these two factors, the step size will be set to the maximum desired speed of the path planner. This is usually some fraction (~85%?) of the maximum speed of the drivetrain. The bigger this fraction, the less margin the drivetrain has to correct for disturbances.
+
+### Next-Pose Solver
+
+In general, the basic algorithm for going from the current commanded pose to the next one is:
+
+1) Calculate the direction the force on the current commanded pose points in
+2) Take a step of size (max_vel) * (loop time) * (slow_factors) in that direction
+
+However, when the force changes rapidly from one pose to another, instability in the path can result, as the pose bounces back-and-forth across the sharp change in force.
+
+As Larry indicates: the main way to solve this is to take smaller steps.
+
+Right now, we are configured to take smaller "substeps" (half the size of a normal step) in a short loop, until the next pose is at least one full step away from the current commanded pose. Care is taken to rescale this step to the correct length, so the correct velocity is commanded. 
+
+The number of subsets must be limited, to prevent an infinite loop in the case of a local minima.
+
+### Stuck Detection
+
+TODO.
+
+Should be looking at a short history of commanded positions, and determining whether "forward progress" is being made. If the last couple points are at similar spots, declare "stuck".
+
+### Lookahead
+
+This functionality is only active in sim, as it is computationally intensive and (so far) only useful for telemetry and testing.
+
+The lookahead operation plans a number of steps ahead of the position, to help visualize what the pathplanner's behavior will be. These poses are sent to the telemetry logic to display, but are otherwise discarded.
