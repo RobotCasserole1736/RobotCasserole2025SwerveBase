@@ -69,7 +69,7 @@ class PointObstacle(ForceGenerator):
     def getForceAtPosition(self, position: Translation2d) -> Force:
         deltaX =  self.location.x - position.x
         deltaY =  self.location.y - position.y
-        dist = math.sqrt((deltaX)**2 + (deltaY)**2)
+        dist = max(math.sqrt((deltaX)**2 + (deltaY)**2), 1e-6)
         unitX = deltaX/dist
         unitY = deltaY/dist
         forceMag = self._distToForceMag(dist)
