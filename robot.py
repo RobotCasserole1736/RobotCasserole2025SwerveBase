@@ -174,6 +174,7 @@ class MyRobot(wpilib.TimedRobot):
         super().endCompetition()
 
 def remoteRIODebugSupport():
+    # TODO - is this still needed in 2025+?
     if __debug__ and "run" in sys.argv:
         print("Starting Remote Debug Support....")
         try:
