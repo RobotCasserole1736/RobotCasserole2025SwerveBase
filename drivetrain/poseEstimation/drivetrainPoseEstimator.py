@@ -96,7 +96,7 @@ class DrivetrainPoseEstimator:
         if(self._useAprilTags):
             for cam in self.cams:
                 cam.update(self._curEstPose)
-                observations = cam.getPoseEstimates()
+                observations = cam.getCamPoseObservations()
                 for observation in observations:
                     self._poseEst.addVisionMeasurement(
                         observation.estFieldPose, observation.time, (observation.xyStdDev, observation.xyStdDev, observation.rotStdDev)

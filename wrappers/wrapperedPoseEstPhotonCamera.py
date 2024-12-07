@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import wpilib
 from wpimath.units import feetToMeters, degreesToRadians
-from wpimath.geometry import Pose2d
+from wpimath.geometry import Pose2d, Transform3d
 from photonlibpy.photonCamera import PhotonCamera
 from photonlibpy.photonCamera import setVersionCheckEnabled
 from utils.fieldTagLayout import FieldTagLayout
@@ -20,28 +20,35 @@ class CameraPoseObservation:
 # 2 - Convert pose estimates to the field
 # 3 - Handle recording latency of when the image was actually seen
 class WrapperedPoseEstPhotonCamera:
-    def __init__(self, camName, robotToCam):
+    def __init__(self, camName:str, robotToCam:Transform3d):
+        """
+        """
         setVersionCheckEnabled(False)
 
-        self.cam = PhotonCamera(camName)
+        self._cam = PhotonCamera(camName)
 
-        self.disconFault = Fault(f"Camera {camName} not sending data")
-        self.timeoutSec = 1.0
-        self.poseEstimates:list[CameraPoseObservation] = []
-        self.robotToCam = robotToCam
+        self._disconFault = Fault(f"Camera {camName} not sending data")
+        self._timeoutSec = 1.0
+        self._poseEstimates:list[CameraPoseObservation] = []
+        self._robotToCam = robotToCam
 
     def update(self, prevEstPose:Pose2d):
+        """
+        Process the all queued results from the camera
+        prevEstPose - the most recent pose estimate. Used to help guess which pose is correct.
+        """
 
-        self.poseEstimates = []
+        self._poseEstimates = []
 
-        if(not self.cam.isConnected()):
+        if(not self._cam.isConnected()):
             # Faulted - no estimates, just return.
-            self.disconFault.setFaulted()
+            self._disconFault.setFaulted()
             return
 
         # Grab whatever the camera last reported for observations in a camera frame
         # Note: Results simply report "I processed a frame". There may be 0 or more targets seen in a frame
-        res = self.cam.getLatestResult()
+        # TODO: in 2025, there will be a "get all unread results" which read from a queue. Use this, it's better.
+        res = self._cam.getLatestResult()
 
         # hack - results also have a more accurate "getTimestamp()", but this is
         # broken in photonvision 2.4.2. Hack with the non-broken latency calcualtion
@@ -51,7 +58,7 @@ class WrapperedPoseEstPhotonCamera:
         
 
         # Update our disconnected fault since we have something from the camera
-        self.disconFault.setNoFault()
+        self._disconFault.setNoFault()
 
         # Process each target.
         # Each target has multiple solutions for where you could have been at on the field
@@ -101,16 +108,19 @@ class WrapperedPoseEstPhotonCamera:
                         # TODO: we can probably get better standard deviations than just
                         # assuming the default. Check out what 254 did in 2024:
                         # https://github.com/Team254/FRC-2024-Public/blob/040f653744c9b18182be5f6bc51a7e505e346e59/src/main/java/com/team254/frc2024/subsystems/vision/VisionSubsystem.java#L381
-                        self.poseEstimates.append(
+                        self._poseEstimates.append(
                             CameraPoseObservation(obsTime, bestCandidate)
                         )
 
-    def getPoseEstimates(self):
-        return self.poseEstimates
+    def getCamPoseObservations(self) -> list[CameraPoseObservation]:
+        """
+        Returns the list of all camera pose observations deduced from the last call to update.
+        """
+        return self._poseEstimates
 
     def _toFieldPose(self, tgtPose, camToTarget):
         camPose = tgtPose.transformBy(camToTarget.inverse())
-        return camPose.transformBy(self.robotToCam.inverse()).toPose2d()
+        return camPose.transformBy(self._robotToCam.inverse()).toPose2d()
 
     # Returns true of a pose is on the field, false if it's outside of the field perimieter
     def _poseIsOnField(self, pose: Pose2d):

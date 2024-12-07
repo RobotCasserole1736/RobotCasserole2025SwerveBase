@@ -62,3 +62,51 @@ This pose is returned from the sequencer, and used by the pose estimation logic 
 The code support resetting the rotational component of pose to be aligned toward "downfield" - this helps during development or driver practice where autonomous is not run.
 
 This only fixes the rotational component of pose. While rotational position is most important, X/Y translation can only be corrected by looking at an apriltag.
+
+## Tuning Localization
+
+The core tuning to be done involves picking how much to trust each source of data.
+
+Ultimately, this is done by picking the "standard deviation" for each sensor. 
+
+Currently, default values are used from WPILib's pose estimator for gyro and wheels (as implemented in `drivetrainPoseEstimator.py`).
+
+When `WrapperedPoseEstPhotonCamera` is updated, part of the  `CameraPoseObservation` includeds the standard deviation of the rotational component (`rotStdDev`), and the translational component (`xyStdDev`) of the pose estimate.
+
+Both of these `StdDev`'s can be thought of as, roughly, how much is the "plus or minus" of the estimated pose. 
+
+For example, currently, we assume the pose is accurate in X/Y, plus-or-minus one meter. This is pretty mid - not horrible, but not great either. 
+
+We also say the rotation is accurate, plus-or-minus 50 degrees.... which is a roundabout way of saying "we don't trust it much at all"
+
+In the future - differnet pieces of info about the apriltag seen (ambiguity ratio, distance from the tag, overall tag size, etc.) could be used to change those fixed assumptions.
+
+At the end of the day, all these numbers change is how rapidly the robot's pose estimate will "respond to" a particular vision observation. 
+
+## Debugging Localization
+
+A set of objects is put into NetworkTables to help debug how the robot is estimating it's position on the field.
+
+[AdvantageScope](https://docs.wpilib.org/en/stable/docs/software/dashboards/advantagescope.html) is the recommended tool for viewing a 3d representation of this. The simulation GUI and [Glass](https://docs.wpilib.org/en/stable/docs/software/dashboards/glass/index.html) also provide 2d views of this.
+
+
+### Field 2d Poses
+
+In `drivetrain/poseEstimation/drivetrainPoseTelemetry.py`, the following 2d and 3d poses are published:
+
+In the `DT Pose 2d` `Field2d` object:
+
+`Robot` - the current estimate of the robot pose
+`ModulePoses` - the current estimated position and state of each swerve module.
+`visionObservations` - any pose the vision system has detected the robot at. 0 or more, depending on how many apriltags are in view.
+`desPose` - the desired pose of the current thing commanding the drivetrain. Might be `null` or just the origin if only velocities are commanded at the moment
+`desTraj` - current autonomous path-planned trajetory (empty if not running)
+`desTrajWaypoints` - Current lookahead waypoints from the Potential Field Auto-drive (empty if not running)
+`curObstaclesFixed` - Poses associated with the obstacles assumed to be always present on the field
+`curObstaclesFull`, `curObstaclesThird`, `curObstaclesAlmostGone` - current transient obstacle poses. As these poses decay in strength, they'll move from one list to the other (this allows the visualization tool to show different colors based on how strong the obstacle is)
+
+### 3d poses
+
+Additionaly, 3d poses are published for the assumed camera locations. This is useful for debugging the camera orientation on the robot with an `axis` object in AdvantageScope's 3d viewer.
+
+`LeftCamPose`, `RightCamPose`, and `FrontCamPose` are all provided. Other poses should be added as we add more cameras.
