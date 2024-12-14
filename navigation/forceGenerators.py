@@ -179,17 +179,17 @@ class Lane(LinearForceGenerator):
     """
     def getForceAtPosition(self, position: Translation2d) -> Force:
         toSeg = self._shortestTransToSegment(position)
-        toSegUnit = toSeg/toSeg.norm()
+        dist = max(toSeg.norm(), 1e-6)
+        toSegUnit = toSeg/dist
 
         alongSeg = (self.end - self.start)
-        alongSegUnit = alongSeg/alongSeg.norm()
+        alongSegUnit = alongSeg/max(alongSeg.norm(),1e-6)
 
         forceDir = alongSegUnit * 0.75 + toSegUnit * 0.25
         forceDirUnit = forceDir/forceDir.norm()
         unitX = forceDirUnit.X()
         unitY = forceDirUnit.Y()
 
-        dist = toSeg.norm()
         forceMag = self._distToForceMag(dist)
 
         return Force(unitX*forceMag, unitY*forceMag)
@@ -202,12 +202,12 @@ class Wall(LinearForceGenerator):
     """
     def getForceAtPosition(self, position: Translation2d) -> Force:
         toSeg = self._shortestTransToSegment(position)
-        toSegUnit = toSeg/toSeg.norm()
+        dist = max(toSeg.norm(), 1e-6)
+        toSegUnit = toSeg/dist
 
         unitX = toSegUnit.X() * -1.0
         unitY = toSegUnit.Y() * -1.0
 
-        dist = toSeg.norm()
         forceMag = self._distToForceMag(dist)
 
         return Force(unitX*forceMag, unitY*forceMag)

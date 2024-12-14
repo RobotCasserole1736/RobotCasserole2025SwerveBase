@@ -66,7 +66,8 @@
           "style": "Box/Image",
           "weight": 2.0
         },
-        "bottom": 1476,
+        "bottom": 615,
+        "builtin": "2019 Destination: Deep Space",
         "curObstaclesAlmostGone": {
           "arrows": false,
           "color": [
@@ -138,12 +139,12 @@
           "weight": 8.0,
           "width": 0.20000000298023224
         },
-        "height": 8.210550308227539,
-        "left": 150,
-        "right": 2961,
-        "top": 79,
+        "height": 8.229599952697754,
+        "left": 217,
+        "right": 1372,
+        "top": 40,
         "units": "meters",
-        "width": 16.541748046875,
+        "width": 16.459199905395508,
         "window": {
           "visible": true
         }

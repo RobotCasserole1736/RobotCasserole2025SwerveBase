@@ -9,7 +9,7 @@ from collections import deque
 from drivetrain.drivetrainCommand import DrivetrainCommand
 
 from navigation.navForce import Force
-from navigation.forceGenerators import HorizontalObstacle, ForceGenerator, PointObstacle, VerticalObstacle
+from navigation.forceGenerators import HorizontalObstacle, ForceGenerator, PointObstacle, VerticalObstacle, Wall
 from utils.constants import FIELD_X_M, FIELD_Y_M
 
 import math
@@ -38,6 +38,28 @@ FIELD_OBSTACLES_2024 = [
     PointObstacle(location=Translation2d(11.0, 2.74)),
     PointObstacle(location=Translation2d(13.27, 4.07)),
     PointObstacle(location=Translation2d(11.0, 5.35))
+]
+
+FIELD_OBSTACLES_2019 = [
+    # Center spaceship
+    Wall(Translation2d(5.6, 3.5), Translation2d(10.8, 3.5)),
+    Wall(Translation2d(5.6, 3.5), Translation2d(5.6, 4.5)),
+    Wall(Translation2d(5.6, 4.5), Translation2d(10.8, 4.5)),
+    Wall(Translation2d(10.8, 3.5), Translation2d(10.8, 4.5)),
+    # Rockets
+    PointObstacle(location=Translation2d(5.8, 0.0)),
+    PointObstacle(location=Translation2d(10.6, 0.0)),
+    PointObstacle(location=Translation2d(5.8, FIELD_Y_M)),
+    PointObstacle(location=Translation2d(10.6, FIELD_Y_M)),
+    # Blue endgame platform
+    Wall(Translation2d(0.0, 2.5), Translation2d(1.5, 2.5)),
+    Wall(Translation2d(0.0, 5.7), Translation2d(1.5, 5.7)),
+    Wall(Translation2d(1.5, 2.5), Translation2d(1.5, 5.7)),
+    # Red endgame platform
+    Wall(Translation2d(FIELD_X_M, 2.5), Translation2d(FIELD_X_M - 1.5, 2.5)),
+    Wall(Translation2d(FIELD_X_M, 5.7), Translation2d(FIELD_X_M - 1.5, 5.7)),
+    Wall(Translation2d(FIELD_X_M - 1.5, 2.5), Translation2d(FIELD_X_M - 1.5, 5.7)),
+
 ]
 
 # Fixed Obstacles - Outer walls of the field 
@@ -99,7 +121,7 @@ class RepulsorFieldPlanner:
     def __init__(self):
         # Set up the list of obstacles which are present on the field always
         self.fixedObstacles:list[ForceGenerator] = []
-        self.fixedObstacles.extend(FIELD_OBSTACLES_2024)
+        self.fixedObstacles.extend(FIELD_OBSTACLES_2019)
         self.fixedObstacles.extend(WALLS)
 
         # Init the obstacle lists which go away over time
