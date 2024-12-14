@@ -37,8 +37,7 @@ FIELD_OBSTACLES_2024 = [
     PointObstacle(location=Translation2d(5.56, 5.35)),
     PointObstacle(location=Translation2d(11.0, 2.74)),
     PointObstacle(location=Translation2d(13.27, 4.07)),
-    PointObstacle(location=Translation2d(11.0, 5.35)),
-    PointObstacle(location=Translation2d(0, 0))
+    PointObstacle(location=Translation2d(11.0, 5.35))
 ]
 
 # Fixed Obstacles - Outer walls of the field 

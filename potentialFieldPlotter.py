@@ -1,5 +1,6 @@
 import tkinter as tk
 from typing import List, Tuple
+from navigation.forceGenerators import LinearForceGenerator, PointObstacle
 from navigation.navForce import Force
 from utils.constants import *
 from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
@@ -8,12 +9,12 @@ from wpimath.geometry import Translation2d
 
 class ScaledCanvas:
     def __init__(self, root: tk.Tk, width_m: float, height_m: float):
-        self.canvas = tk.Canvas(root, bg="white")
+        self.canvas = tk.Canvas(root, bg="white", width=1400, height=800)
         self.canvas.pack(fill=tk.BOTH, expand=True)
         self.vizMargin_m = 1.0
         self.width_m = width_m + 2.0 * self.vizMargin_m
         self.height_m = height_m + 2.0 * self.vizMargin_m
-        self.scale = 1
+        self.scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
         self.objects = []
@@ -53,8 +54,23 @@ class ScaledCanvas:
         self.objects.append(draw)
         draw()
 
+    def add_line(self, start_m: Tuple[float, float], end_m: Tuple[float, float], color: str = "red"):
+        def draw():
+            x1, y1 = self._to_pixels(*start_m)
+            x2, y2 = self._to_pixels(*end_m)
+            self.canvas.create_line(x1, y1, x2, y2, fill=color, width=3)
+
+        self.objects.append(draw)
+        draw()
+
     def add_circle(self, location_m: Tuple[float, float], radius_m:float,  color: str = "red"):
-        self.add_rectangle(location_m[0] - radius_m/2, location_m[1] - radius_m/2, radius_m, radius_m,color) # Hack, need to git good
+        def draw():
+            x1, y1 = self._to_pixels(location_m[0]-radius_m, location_m[1]-radius_m)
+            x2, y2 = self._to_pixels(location_m[0]+radius_m, location_m[1]+radius_m)
+            self.canvas.create_oval(x1,y1,x2,y2,outline=color, width=3)
+
+        self.objects.append(draw)
+        draw()
 
     def _to_pixels(self, x_m: float, y_m: float) -> Tuple[int, int]:
         """
@@ -67,7 +83,7 @@ class ScaledCanvas:
 
 # Create the main Tkinter application
 def main():
-    arrowSpacing_m = 0.15
+    arrowSpacing_m = 0.25
 
     root = tk.Tk()
     root.title("Potential Fields")
@@ -97,8 +113,15 @@ def main():
             forces[(x_idx,y_idx)] = force
 
             start = (x_pos, y_pos)
-            end = (start[0] + force.unitX() * arrowSpacing_m, start[1] + force.unitY() * arrowSpacing_m)
+            end = (start[0] + force.unitX() * arrowSpacing_m * 0.75, start[1] + force.unitY() * arrowSpacing_m * 0.75)
             canvas.add_arrow(start, end, color="green")
+
+    # Plot Obstacles
+    for obs in rpf.fixedObstacles:
+        if(isinstance(obs, PointObstacle)):
+            canvas.add_circle((obs.location.X(), obs.location.Y()), obs.radius, color="grey")
+        elif(isinstance(obs,LinearForceGenerator)):
+            canvas.add_line((obs.start.X(), obs.start.Y()), (obs.end.X(), obs.end.Y()), color="grey")
 
     # Exhaustively detect local minima
     for x_idx in range(num_x_samples):
@@ -128,8 +151,8 @@ def main():
             yHasMinima = (deltaPrev <= 0 and deltaNext >= 0)
 
 
-            if(xHasMinima):
-                canvas.add_circle((x_pos, y_pos), arrowSpacing_m/3.0)
+            if(xHasMinima and yHasMinima):
+                canvas.add_circle((x_pos, y_pos), arrowSpacing_m/10.0)
 
     root.mainloop()
 
