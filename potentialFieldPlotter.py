@@ -83,7 +83,7 @@ class ScaledCanvas:
 
 # Create the main Tkinter application
 def main():
-    arrowSpacing_m = 0.25
+    arrowSpacing_m = 0.2
 
     root = tk.Tk()
     root.title("Potential Fields")
@@ -124,6 +124,7 @@ def main():
             canvas.add_line((obs.start.X(), obs.start.Y()), (obs.end.X(), obs.end.Y()), color="grey")
 
     # Exhaustively detect local minima
+    DELTA_M = arrowSpacing_m/2.0
     for x_idx in range(num_x_samples):
         for y_idx in range(num_y_samples):
 
@@ -135,24 +136,17 @@ def main():
             y_pos = y_idx * arrowSpacing_m
 
             # Look for minima in X
-            forcePrev = forces[(x_idx-1,y_idx)]
-            forceCur = forces[(x_idx,y_idx)]
-            forceNext = forces[(x_idx+1,y_idx)]
-            deltaPrev = forceCur.unitX() - forcePrev.unitX()
-            deltaNext = forceNext.unitX() - forceCur.unitX()
-            xHasMinima = (deltaPrev <= 0 and deltaNext >= 0)
+            forcePrev = rpf._getForceAtTrans(Translation2d(x_pos - DELTA_M, y_pos))
+            forceNext = rpf._getForceAtTrans(Translation2d(x_pos + DELTA_M, y_pos))
+            xHasMinima = (forcePrev.x > 0 and forceNext.x < 0)
 
             # Look for minima in Y
-            forcePrev = forces[(x_idx,y_idx-1)]
-            forceCur = forces[(x_idx,y_idx)]
-            forceNext = forces[(x_idx,y_idx+1)]
-            deltaPrev = forceCur.y - forcePrev.y
-            deltaNext = forceNext.y - forceCur.y
-            yHasMinima = (deltaPrev <= 0 and deltaNext >= 0)
+            forcePrev = rpf._getForceAtTrans(Translation2d(x_pos, y_pos - DELTA_M))
+            forceNext = rpf._getForceAtTrans(Translation2d(x_pos, y_pos + DELTA_M))
+            yHasMinima = (forcePrev.y > 0 and forceNext.y < 0)
 
-
-            if(xHasMinima and yHasMinima):
-                canvas.add_circle((x_pos, y_pos), arrowSpacing_m/10.0)
+            if(yHasMinima and xHasMinima):
+                canvas.add_circle((x_pos, y_pos), arrowSpacing_m/8.0)
 
     root.mainloop()
 
