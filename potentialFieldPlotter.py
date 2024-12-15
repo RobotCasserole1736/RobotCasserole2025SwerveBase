@@ -83,7 +83,7 @@ class ScaledCanvas:
 
 # Create the main Tkinter application
 def main():
-    arrowSpacing_m = 0.15
+    arrowSpacing_m = 0.25
 
     root = tk.Tk()
     root.title("Potential Fields")
@@ -150,7 +150,7 @@ def main():
             yHasMinima = (forcePrev.y > 0 and forceNext.y < 0)
 
             if(yHasMinima and xHasMinima):
-                canvas.add_circle((x_pos, y_pos), arrowSpacing_m/8.0)
+                canvas.add_circle((x_pos, y_pos), 0.025)
 
     root.mainloop()
 

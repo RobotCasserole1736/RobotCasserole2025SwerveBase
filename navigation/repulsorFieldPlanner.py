@@ -215,9 +215,13 @@ class RepulsorFieldPlanner:
         """
         if(self.goal is not None):
             displacement = self.goal.translation() - curLocation
-            direction = displacement/displacement.norm()
-            mag = GOAL_STRENGTH * (1 + 1.0/(0.0001 + displacement.norm()))
-            return Force(direction.x*mag, direction.y*mag)
+            if(displacement.norm() < 1e-9):
+                # pretty much exactly correct. no goal force.
+                return Force(0,0)
+            else:
+                direction = displacement/displacement.norm()
+                mag = GOAL_STRENGTH * (1 + 1.0/(0.0001 + displacement.norm()))
+                return Force(direction.x*mag, direction.y*mag)
         else:
             # no goal, no force
             return Force()
