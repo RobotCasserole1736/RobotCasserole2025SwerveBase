@@ -20,9 +20,6 @@ Defines the physical dimensions and characteristics of the drivetrain
 WHEEL_BASE_HALF_WIDTH_M = inchesToMeters(23.75 / 2.0)
 WHEEL_BASE_HALF_LENGTH_M = inchesToMeters(23.75 / 2.0)
 
-# Additional distance from the wheel contact patch out to the edge of the bumper
-BUMPER_THICKNESS_M = inchesToMeters(2.5)
-
 # Total mass includes robot, battery, and bumpers
 # more than the "weigh-in" weight
 ROBOT_MASS_KG = lbsToKg(140)
