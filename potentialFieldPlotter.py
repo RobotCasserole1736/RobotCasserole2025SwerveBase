@@ -92,8 +92,8 @@ def main():
 
     # Set up the actual repulsor field planner
     rfp = RepulsorFieldPlanner()
-    #rfp.setGoal(GOAL_SPEAKER)
-    rfp.setGoal(GOAL_PICKUP)
+    rfp.setGoal(GOAL_SPEAKER)
+    #rfp.setGoal(GOAL_PICKUP)
 
     # Field boundary
     canvas.add_rectangle(0.0, 0.0, FIELD_X_M, FIELD_Y_M, color="black")

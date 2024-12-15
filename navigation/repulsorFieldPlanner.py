@@ -362,7 +362,7 @@ class RepulsorFieldPlanner:
 
         return nextCmd
     
-    def _updateStuckStatus(self, curCmd:DrivetrainCommand, stepSize_m:float) -> bool:
+    def _updateStuckStatus(self, curCmd:DrivetrainCommand, stepSize_m:float) -> None:
 
         # Add our new command to the list
         self.stuckPrevCmdBuffer.append(curCmd.desPose)
