@@ -1,6 +1,6 @@
 import tkinter as tk
 from typing import List, Tuple
-from navigation.forceGenerators import LinearForceGenerator, PointObstacle
+from navigation.forceGenerators import Lane, LinearForceGenerator, PointObstacle
 from navigation.navForce import Force
 from utils.constants import *
 from navigation.repulsorFieldPlanner import RepulsorFieldPlanner
@@ -83,7 +83,7 @@ class ScaledCanvas:
 
 # Create the main Tkinter application
 def main():
-    arrowSpacing_m = 0.2
+    arrowSpacing_m = 0.15
 
     root = tk.Tk()
     root.title("Potential Fields")
@@ -92,7 +92,7 @@ def main():
 
     # Set up the actual repulsor field planner
     rpf = RepulsorFieldPlanner()
-    rpf.setGoal(GOAL_PICKUP)
+    rpf.setGoal(GOAL_SPEAKER)
 
     # Field boundary
     canvas.add_rectangle(0.0, 0.0, FIELD_X_M, FIELD_Y_M, color="black")
@@ -121,7 +121,11 @@ def main():
         if(isinstance(obs, PointObstacle)):
             canvas.add_circle((obs.location.X(), obs.location.Y()), obs.radius, color="grey")
         elif(isinstance(obs,LinearForceGenerator)):
-            canvas.add_line((obs.start.X(), obs.start.Y()), (obs.end.X(), obs.end.Y()), color="grey")
+            if(isinstance(obs, Lane)):
+                linecolor="yellow"
+            else:
+                linecolor = "grey"
+            canvas.add_line((obs.start.X(), obs.start.Y()), (obs.end.X(), obs.end.Y()), color=linecolor)
 
     # Exhaustively detect local minima
     DELTA_M = arrowSpacing_m/2.0

@@ -1,6 +1,7 @@
 from wpilib import TimedRobot
 from wpimath.geometry import Pose2d, Translation2d, Rotation2d
 
+from navigation.navConstants import GOAL_SPEAKER
 from utils.mapLookup2d import MapLookup2D
 from utils.mathUtils import limit
 from utils.signalLogging import addLog
@@ -9,7 +10,7 @@ from collections import deque
 from drivetrain.drivetrainCommand import DrivetrainCommand
 
 from navigation.navForce import Force
-from navigation.forceGenerators import HorizontalObstacle, ForceGenerator, PointObstacle, VerticalObstacle, Wall
+from navigation.forceGenerators import HorizontalObstacle, ForceGenerator, PointObstacle, VerticalObstacle, Wall, Lane
 from utils.constants import FIELD_X_M, FIELD_Y_M
 
 import math
@@ -40,6 +41,18 @@ FIELD_OBSTACLES_2024 = [
     PointObstacle(location=Translation2d(11.0, 5.35))
 ]
 
+# Lane Traffic pattern around center
+x1 = 3.0
+x2 = FIELD_X_M - x1
+y1 = 2.0
+y2 = FIELD_Y_M - y1
+
+# Adds asymmetry so robot doesn't get stuck on opposite side of spaceship
+FIELD_LANES_2019 = [
+    Lane(Translation2d(x2 - 2.5, y2), Translation2d(x1 + 2.5, y2)),
+    Lane(Translation2d(x2, y2 - 1.5), Translation2d(x2, y1 + 1.5)),
+]
+
 FIELD_OBSTACLES_2019 = [
     # Center spaceship
     Wall(Translation2d(5.6, 3.5), Translation2d(10.8, 3.5)),
@@ -59,7 +72,6 @@ FIELD_OBSTACLES_2019 = [
     Wall(Translation2d(FIELD_X_M, 2.5), Translation2d(FIELD_X_M - 1.5, 2.5)),
     Wall(Translation2d(FIELD_X_M, 5.7), Translation2d(FIELD_X_M - 1.5, 5.7)),
     Wall(Translation2d(FIELD_X_M - 1.5, 2.5), Translation2d(FIELD_X_M - 1.5, 5.7)),
-
 ]
 
 # Fixed Obstacles - Outer walls of the field 
@@ -122,6 +134,7 @@ class RepulsorFieldPlanner:
         # Set up the list of obstacles which are present on the field always
         self.fixedObstacles:list[ForceGenerator] = []
         self.fixedObstacles.extend(FIELD_OBSTACLES_2019)
+        self.fixedObstacles.extend(FIELD_LANES_2019)
         self.fixedObstacles.extend(WALLS)
 
         # Init the obstacle lists which go away over time
@@ -156,6 +169,15 @@ class RepulsorFieldPlanner:
         if(nextGoal != self.goal):
             # New goal, reset the slow factor
             self.startSlowFactor = 0.0
+
+        for lane in FIELD_LANES_2019:
+            if(nextGoal == GOAL_SPEAKER):
+                # Speaker/Spaceship requires lanes on opposite side to prevent local minima
+                lane.strength = 0.5
+            else:
+                # But for other goals, don't let them impact the path
+                lane.strength = 0.0
+
         self.goal = nextGoal
 
     def addObstacleObservation(self, obs:PointObstacle):
