@@ -185,6 +185,9 @@ class Lane(LinearForceGenerator):
         alongSeg = (self.end - self.start)
         alongSegUnit = alongSeg/max(alongSeg.norm(),1e-6)
 
+        if(not self.forceIsPositive):
+            alongSegUnit *= -1.0
+
         forceDir = alongSegUnit * 0.75 + toSegUnit * 0.25
         forceDirUnit = forceDir/forceDir.norm()
         unitX = forceDirUnit.X()

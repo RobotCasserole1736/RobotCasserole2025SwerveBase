@@ -5,7 +5,8 @@ from navigation.navConstants import GOAL_SPEAKER
 from utils.mapLookup2d import MapLookup2D
 from utils.mathUtils import limit
 from utils.signalLogging import addLog
-from collections import deque
+from utils.allianceTransformUtils import onRed
+
 
 from drivetrain.drivetrainCommand import DrivetrainCommand
 
@@ -14,6 +15,8 @@ from navigation.forceGenerators import HorizontalObstacle, ForceGenerator, Point
 from utils.constants import FIELD_X_M, FIELD_Y_M
 
 import math
+from collections import deque
+
 
 # Relative strength of how hard the goal pulls the robot toward it
 # Too big and the robot will be pulled through obstacles
@@ -48,7 +51,7 @@ y1 = 2.0
 y2 = FIELD_Y_M - y1
 
 # Adds asymmetry so robot doesn't get stuck on opposite side of spaceship
-FIELD_LANES_2019 = [
+FIELD_LANES_BLUE_2019 = [
     Lane(Translation2d(x2 - 2.5, y2), Translation2d(x1 + 2.5, y2)),
     Lane(Translation2d(x2, y2 - 1.5), Translation2d(x2, y1 + 1.5)),
 ]
@@ -134,7 +137,7 @@ class RepulsorFieldPlanner:
         # Set up the list of obstacles which are present on the field always
         self.fixedObstacles:list[ForceGenerator] = []
         self.fixedObstacles.extend(FIELD_OBSTACLES_2019)
-        self.fixedObstacles.extend(FIELD_LANES_2019)
+        self.fixedObstacles.extend(FIELD_LANES_BLUE_2019)
         self.fixedObstacles.extend(WALLS)
 
         # Init the obstacle lists which go away over time
@@ -170,7 +173,7 @@ class RepulsorFieldPlanner:
             # New goal, reset the slow factor
             self.startSlowFactor = 0.0
 
-        for lane in FIELD_LANES_2019:
+        for lane in FIELD_LANES_BLUE_2019:
             if(nextGoal == GOAL_SPEAKER):
                 # Speaker/Spaceship requires lanes on opposite side to prevent local minima
                 lane.strength = 0.5

@@ -1,5 +1,5 @@
 import tkinter as tk
-from typing import List, Tuple
+from typing import Tuple
 from navigation.forceGenerators import Lane, LinearForceGenerator, PointObstacle
 from navigation.navForce import Force
 from utils.constants import *
