@@ -2,7 +2,7 @@
 from wrappers.wrapperedObstaclePhotonCamera import WrapperedObstaclePhotonCamera
 from drivetrain.drivetrainPhysical import ROBOT_TO_FRONT_CAM
 from wpimath.geometry import Pose2d, Pose3d
-from navigation.forceGenerators import ForceGenerator, PointObstacle
+from navigation.forceGenerators import PointObstacle
 
 class ObstacleDetector():
     """
@@ -11,7 +11,7 @@ class ObstacleDetector():
     def __init__(self):
         self.frontCam = WrapperedObstaclePhotonCamera("FRONT_CAM", ROBOT_TO_FRONT_CAM)
 
-    def getObstacles(self, curPose:Pose2d) -> list['ForceGenerator']:
+    def getObstacles(self, curPose:Pose2d) -> list['PointObstacle']:
         """
         Returns the currently observed obstacles
         """

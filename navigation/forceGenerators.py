@@ -1,5 +1,5 @@
 import math
-from wpimath.geometry import Translation2d
+from wpimath.geometry import Translation2d, Rotation2d
 from utils.constants import FIELD_X_M, FIELD_Y_M
 from navigation.navForce import Force, logisticFunc
 
@@ -205,8 +205,10 @@ class Wall(LinearForceGenerator):
         dist = max(toSeg.norm(), 1e-6)
         toSegUnit = toSeg/dist
 
-        unitX = toSegUnit.X() * -1.0
-        unitY = toSegUnit.Y() * -1.0
+        perpVec = (self.end - self.start).rotateBy(Rotation2d.fromDegrees(90.0))
+        perpVec /= perpVec.norm()
+        unitX = perpVec.X()
+        unitY = perpVec.Y()
 
         forceMag = self._distToForceMag(dist)
 

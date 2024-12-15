@@ -45,11 +45,11 @@ class ScaledCanvas:
         self.objects.append(draw)
         draw()
 
-    def add_arrow(self, start_m: Tuple[float, float], end_m: Tuple[float, float], color: str = "red"):
+    def add_arrow(self, start_m: Tuple[float, float], end_m: Tuple[float, float], color: str = "red", width: int = 2):
         def draw():
             x1, y1 = self._to_pixels(*start_m)
             x2, y2 = self._to_pixels(*end_m)
-            self.canvas.create_line(x1, y1, x2, y2, arrow=tk.LAST, fill=color, width=2)
+            self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width, arrow=tk.LAST)
 
         self.objects.append(draw)
         draw()
@@ -63,11 +63,11 @@ class ScaledCanvas:
         self.objects.append(draw)
         draw()
 
-    def add_circle(self, location_m: Tuple[float, float], radius_m:float,  color: str = "red"):
+    def add_circle(self, location_m: Tuple[float, float], radius_m:float,  color: str = "red", width: int=3):
         def draw():
             x1, y1 = self._to_pixels(location_m[0]-radius_m, location_m[1]-radius_m)
             x2, y2 = self._to_pixels(location_m[0]+radius_m, location_m[1]+radius_m)
-            self.canvas.create_oval(x1,y1,x2,y2,outline=color, width=3)
+            self.canvas.create_oval(x1,y1,x2,y2,outline=color, width=width)
 
         self.objects.append(draw)
         draw()
@@ -83,7 +83,7 @@ class ScaledCanvas:
 
 # Create the main Tkinter application
 def main():
-    arrowSpacing_m = 0.25
+    arrowSpacing_m = 0.21
 
     root = tk.Tk()
     root.title("Potential Fields")
@@ -91,8 +91,9 @@ def main():
     canvas = ScaledCanvas(root, width_m, height_m)
 
     # Set up the actual repulsor field planner
-    rpf = RepulsorFieldPlanner()
-    rpf.setGoal(GOAL_SPEAKER)
+    rfp = RepulsorFieldPlanner()
+    #rfp.setGoal(GOAL_SPEAKER)
+    rfp.setGoal(GOAL_PICKUP)
 
     # Field boundary
     canvas.add_rectangle(0.0, 0.0, FIELD_X_M, FIELD_Y_M, color="black")
@@ -102,13 +103,12 @@ def main():
     num_y_samples = int(FIELD_Y_M / arrowSpacing_m + 1)
     forces: dict[tuple[int, int], Force]= {}
 
-
     # Add some arrows
     for x_idx in range(num_x_samples):
         for y_idx in range(num_y_samples):
             x_pos = x_idx * arrowSpacing_m
             y_pos = y_idx * arrowSpacing_m
-            force = rpf._getForceAtTrans(Translation2d(x_pos, y_pos))
+            force = rfp._getForceAtTrans(Translation2d(x_pos, y_pos))
 
             forces[(x_idx,y_idx)] = force
 
@@ -117,15 +117,18 @@ def main():
             canvas.add_arrow(start, end, color="green")
 
     # Plot Obstacles
-    for obs in rpf.fixedObstacles:
-        if(isinstance(obs, PointObstacle)):
-            canvas.add_circle((obs.location.X(), obs.location.Y()), obs.radius, color="grey")
-        elif(isinstance(obs,LinearForceGenerator)):
-            if(isinstance(obs, Lane)):
-                linecolor="yellow"
-            else:
-                linecolor = "grey"
-            canvas.add_line((obs.start.X(), obs.start.Y()), (obs.end.X(), obs.end.Y()), color=linecolor)
+    for obs in rfp.fixedObstacles:
+        if(obs.strength != 0.0):
+            if(isinstance(obs, PointObstacle)):
+                canvas.add_circle((obs.location.X(), obs.location.Y()), obs.radius, color="#995555")
+            elif(isinstance(obs,LinearForceGenerator)):
+                if(isinstance(obs, Lane)):
+                    linecolor="#11dd33"
+                    canvas.add_arrow((obs.start.X(), obs.start.Y()), (obs.end.X(), obs.end.Y()), color=linecolor, width = 6)
+                else:
+                    linecolor = "#995555"
+                    canvas.add_line((obs.start.X(), obs.start.Y()), (obs.end.X(), obs.end.Y()), color=linecolor)
+
 
     # Exhaustively detect local minima
     DELTA_M = arrowSpacing_m/2.0
@@ -140,17 +143,20 @@ def main():
             y_pos = y_idx * arrowSpacing_m
 
             # Look for minima in X
-            forcePrev = rpf._getForceAtTrans(Translation2d(x_pos - DELTA_M, y_pos))
-            forceNext = rpf._getForceAtTrans(Translation2d(x_pos + DELTA_M, y_pos))
+            forcePrev = rfp._getForceAtTrans(Translation2d(x_pos - DELTA_M, y_pos))
+            forceNext = rfp._getForceAtTrans(Translation2d(x_pos + DELTA_M, y_pos))
             xHasMinima = (forcePrev.x > 0 and forceNext.x < 0)
 
             # Look for minima in Y
-            forcePrev = rpf._getForceAtTrans(Translation2d(x_pos, y_pos - DELTA_M))
-            forceNext = rpf._getForceAtTrans(Translation2d(x_pos, y_pos + DELTA_M))
+            forcePrev = rfp._getForceAtTrans(Translation2d(x_pos, y_pos - DELTA_M))
+            forceNext = rfp._getForceAtTrans(Translation2d(x_pos, y_pos + DELTA_M))
             yHasMinima = (forcePrev.y > 0 and forceNext.y < 0)
 
             if(yHasMinima and xHasMinima):
-                canvas.add_circle((x_pos, y_pos), 0.025)
+                canvas.add_circle((x_pos, y_pos), 0.1)
+
+    if(rfp.goal is not None):
+        canvas.add_circle((rfp.goal.x, rfp.goal.y), 0.075, color="cyan", width=10)
 
     root.mainloop()
 
