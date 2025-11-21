@@ -1,23 +1,9 @@
-from rev import CANSparkMax, SparkMaxPIDController, REVLibError, CANSparkLowLevel
+from rev import SparkMax, SparkBase, SparkMaxConfig, REVLibError, ClosedLoopSlot, SparkBaseConfig, ClosedLoopConfig, SparkClosedLoopController
 from wpilib import TimedRobot
 from utils.signalLogging import addLog
 from utils.units import rev2Rad, rad2Rev, radPerSec2RPM, RPM2RadPerSec
 from utils.faults import Fault
 import time
-
-
-_StatusFramePeriodConfigs = [
-    [CANSparkMax.PeriodicFrame.kStatus0, 200],  # Status 0 = Motor output and Faults
-    [
-        CANSparkMax.PeriodicFrame.kStatus1,
-        100,
-    ],  # Status 1 = Motor velocity & electrical data
-    [CANSparkMax.PeriodicFrame.kStatus2, 20],  # Status 2 = Motor Position
-    [CANSparkMax.PeriodicFrame.kStatus3, 32767],  # Status 3 = Analog Sensor Input
-    [CANSparkMax.PeriodicFrame.kStatus4, 32767],  # Status 4 = Alternate Encoder Stats
-    [CANSparkMax.PeriodicFrame.kStatus5, 32767],  # Status 5 = Duty Cycle Encoder pt1
-    [CANSparkMax.PeriodicFrame.kStatus6, 32767],  # Status 5 = Duty Cycle Encoder pt2
-]
 
 
 ## Wrappered Spark Max
@@ -29,8 +15,8 @@ _StatusFramePeriodConfigs = [
 # Fault annunication logic to trigger warnings if a motor couldn't be configured
 class WrapperedSparkMax:
     def __init__(self, canID, name, brakeMode=False, currentLimitA=40.0):
-        self.ctrl = CANSparkMax(canID, CANSparkLowLevel.MotorType.kBrushless)
-        self.pidCtrl = self.ctrl.getPIDController()
+        self.ctrl = SparkMax(canID, SparkMax.MotorType.kBrushless)
+        self.closedLoopCtrl = self.ctrl.getClosedLoopController()
         self.encoder = self.ctrl.getEncoder()
         self.name = name
         self.configSuccess = False
@@ -43,26 +29,25 @@ class WrapperedSparkMax:
         self.actPos = 0
         self.actVel = 0
 
+        self.cfg = SparkMaxConfig()
+        self.cfg.signals.appliedOutputPeriodMs(200)
+        self.cfg.signals.busVoltagePeriodMs(200)
+        self.cfg.signals.primaryEncoderPositionPeriodMs(20)
+        self.cfg.signals.primaryEncoderVelocityPeriodMs(200)
+        self.cfg.setIdleMode(SparkBaseConfig.IdleMode.kBrake if brakeMode else SparkBaseConfig.IdleMode.kCoast)
+        self.cfg.smartCurrentLimit(round(currentLimitA))
+
         # Perform motor configuration, tracking errors and retrying until we have success
+        # Clear previous configuration, and persist anything set in this config.
         retryCounter = 0
         while not self.configSuccess and retryCounter < 10:
             retryCounter += 1
-            errList = []
-            errList.append(self.ctrl.restoreFactoryDefaults())
-            mode = (
-                CANSparkMax.IdleMode.kBrake
-                if brakeMode
-                else CANSparkMax.IdleMode.kCoast
-            )
-            errList.append(self.ctrl.setIdleMode(mode))
-            errList.append(self.ctrl.setSmartCurrentLimit(int(currentLimitA)))
-
-            # Apply all status mode configs
-            for cfg in _StatusFramePeriodConfigs:
-                errList.append(self.ctrl.setPeriodicFramePeriod(cfg[0], cfg[1]))
+            err = self.ctrl.configure(self.cfg, 
+                                      SparkBase.ResetMode.kResetSafeParameters, 
+                                      SparkBase.PersistMode.kPersistParameters)
 
             # Check if any operation triggered an error
-            if any(x != REVLibError.kOk for x in errList):
+            if err != REVLibError.kOk:
                 print(
                     f"Failure configuring Spark Max {name} CAN ID {canID}, retrying..."
                 )
@@ -74,25 +59,34 @@ class WrapperedSparkMax:
         
         self.disconFault.set(not self.configSuccess)
 
-        #addLog(self.name + "_outputCurrent", self.ctrl.getOutputCurrent, "A")
-        #addLog(self.name + "_appliedOutput", self.ctrl.getAppliedOutput, "%")
-        #addLog(self.name + "_desVolt", lambda: self.desVolt, "V")
-        #addLog(self.name + "_desPos", lambda: self.desPos, "rad")
-        #addLog(self.name + "_desVel", lambda: self.desVel, "RPM")
-        #addLog(self.name + "_actPos", lambda: self.actPos, "rad")
-        #addLog(self.name + "_actVel", lambda: self.actVel, "RPM")
+        addLog(self.name + "_outputCurrent", self.ctrl.getOutputCurrent, "A")
+        addLog(self.name + "_desVolt", lambda: self.desVolt, "V")
+        addLog(self.name + "_desPos", lambda: self.desPos, "rad")
+        addLog(self.name + "_desVel", lambda: self.desVel, "RPM")
+        addLog(self.name + "_actPos", lambda: self.actPos, "rad")
+        addLog(self.name + "_actVel", lambda: self.actVel, "RPM")
 
 
     def setInverted(self, isInverted):
         if self.configSuccess:
-            self.ctrl.setInverted(isInverted)
+            self.cfg.inverted(isInverted)
+            self.ctrl.configure(self.cfg,
+                                SparkBase.ResetMode.kNoResetSafeParameters, 
+                                SparkBase.PersistMode.kPersistParameters)
 
-    def setPID(self, kP, kI, kD):
+    def setPID(self, kP, kI, kD, persist=SparkBase.PersistMode.kPersistParameters):
         if self.configSuccess:
-            self.pidCtrl.setP(kP)
-            self.pidCtrl.setI(kI)
-            self.pidCtrl.setD(kD)
-
+            self.cfg.closedLoop.pid(kP, kI, kD, ClosedLoopSlot.kSlot0)
+            # Apply new configuration
+            # but don't reset other parameters
+            # Use the specified persist mode.
+            # By default we persist setings (usually we set PID once, then don't think about it again)
+            # However, if setPID is getting called in a periodic loop, don't bother persisting the parameters
+            # because the persist operation takes a long time on the spark max.
+            self.ctrl.configure(self.cfg, 
+                                SparkBase.ResetMode.kNoResetSafeParameters, 
+                                persist)
+            
     def setPosCmd(self, posCmd, arbFF=0.0):
         """_summary_
 
@@ -107,12 +101,12 @@ class WrapperedSparkMax:
         self.desVolt = arbFF
 
         if self.configSuccess:
-            err = self.pidCtrl.setReference(
+            err = self.closedLoopCtrl.setReference(
                 posCmdRev,
-                CANSparkMax.ControlType.kPosition,
-                0,
+                SparkMax.ControlType.kPosition,
+                ClosedLoopSlot.kSlot0,
                 arbFF,
-                SparkMaxPIDController.ArbFFUnits.kVoltage,
+                SparkClosedLoopController.ArbFFUnits.kVoltage,
             )
 
             self.disconFault.set(err != REVLibError.kOk)
@@ -131,12 +125,12 @@ class WrapperedSparkMax:
         self.desVolt = arbFF
 
         if self.configSuccess:
-            err = self.pidCtrl.setReference(
+            err = self.closedLoopCtrl.setReference(
                 self.desVel,
-                CANSparkMax.ControlType.kVelocity,
-                0,
+                SparkMax.ControlType.kVelocity,
+                ClosedLoopSlot.kSlot0,
                 arbFF,
-                SparkMaxPIDController.ArbFFUnits.kVoltage,
+                SparkClosedLoopController.ArbFFUnits.kVoltage,
             )
             self.disconFault.set(err != REVLibError.kOk)
 

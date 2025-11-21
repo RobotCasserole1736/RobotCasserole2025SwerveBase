@@ -1,4 +1,5 @@
-from robotpy_apriltag import AprilTagField, loadAprilTagLayoutField
+
+from robotpy_apriltag import AprilTagField
 from utils.singleton import Singleton
 from wpimath.geometry import Pose3d
 
@@ -16,7 +17,7 @@ class FieldTagLayout(metaclass=Singleton):
         # Throws exceptions if it has issues accessing the file. We should be catching
         # those exceptions so the robot code doesn't outright crash, but raise a fault
         # to indicate something has gone wrong with the RIO's ability to load the file.
-        self.fieldTags = loadAprilTagLayoutField(AprilTagField.k2024Crescendo)
+        self.fieldTags = (AprilTagField.k2024Crescendo)
 
     def lookup(self, tagId) -> Pose3d | None:
         """

@@ -10,6 +10,7 @@ from wpilib import TimedRobot
 
 
 from drivetrain.swerveModuleGainSet import SwerveModuleGainSet
+
 from wrappers.wrapperedSparkMax import WrapperedSparkMax
 from wrappers.wrapperedSRXMagEncoder import WrapperedSRXMagEncoder
 from dashboardWidgets.swerveState import getAzmthDesTopicName, getAzmthActTopicName
@@ -96,12 +97,12 @@ class SwerveModuleControl:
 
         addLog(
             getAzmthDesTopicName(moduleName),
-            self.optimizedDesiredState.angle.degrees,
+            lambda: (self.optimizedDesiredState.angle.degrees()),
             "deg",
         )
         addLog(
             getAzmthActTopicName(moduleName),
-            self.actualState.angle.degrees,
+            lambda: (self.actualState.angle.degrees()),
             "deg",
         )
         addLog(
@@ -117,7 +118,7 @@ class SwerveModuleControl:
 
 
         # Simulation Support Only
-        self.wheelSimFilter = SlewRateLimiter(24.0)
+        self.wheelSimFilter = SlewRateLimiter(48.0)
 
     def getActualPosition(self)->SwerveModulePosition:
         """
@@ -183,9 +184,8 @@ class SwerveModuleControl:
             self.actualPosition.angle = self.actualState.angle
 
         # Optimize our incoming swerve command to minimize motion
-        self.optimizedDesiredState = SwerveModuleState.optimize(
-            self.desiredState, self.actualState.angle
-        )
+        self.optimizedDesiredState = self.desiredState
+        self.optimizedDesiredState.optimize(self.actualState.angle)
         
         # Use a PID controller to calculate the voltage for the azimuth motor
         self.azmthCtrl.setSetpoint(self.optimizedDesiredState.angle.degrees())  # type: ignore
@@ -199,9 +199,8 @@ class SwerveModuleControl:
 
         # Send voltage and speed commands to the wheel motor
         motorDesSpd = dtLinearToMotorRot(self.optimizedDesiredState.speed)
-        motorDesAccel = (motorDesSpd - self._prevMotorDesSpeed) / 0.02
-        motorVoltageFF = self.wheelMotorFF.calculate(motorDesSpd, motorDesAccel)
-        self.wheelMotor.setVelCmd(motorDesSpd, motorVoltageFF)
+        motorVoltageFF = self.wheelMotorFF.calculate(self._prevMotorDesSpeed, motorDesSpd) #This is the problem child of the new non-backwards compatable Robotpy update. actualstate.speed is "prev" and motorDesSpd is "cur"
+        self.wheelMotor.setVelCmd(motorDesSpd, motorVoltageFF)                            
 
         self._prevMotorDesSpeed = motorDesSpd  # save for next loop
 
@@ -210,10 +209,10 @@ class SwerveModuleControl:
             # sensor data for the next loop.
 
             # Very simple voltage/motor model of azimuth rotation
-            self.actualState.angle += Rotation2d.fromDegrees(self.azmthVoltage / 12.0 * 1000.0 * 0.02)
+            self.actualState.angle += Rotation2d.fromDegrees(self.azmthVoltage / 12.0 * 1500.0 * 0.02)
             self.actualPosition.angle = self.actualState.angle
 
             # Wheel speed is slew-rate filtered to roughly simulate robot inertia
-            speed = self.wheelSimFilter.calculate(self.optimizedDesiredState.speed)
+            speed = self.wheelSimFilter.calculate(self.desiredState.speed)
             self.actualState.speed = speed + random.uniform(-0.0, 0.0)
             self.actualPosition.distance += self.actualState.speed * 0.02
